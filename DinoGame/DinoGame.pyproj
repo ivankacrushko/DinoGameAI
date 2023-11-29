@@ -1,0 +1,64 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>247e60be-4ddf-4c99-a66c-cf9ec302de5a</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>DinoGame.py</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>DinoGame</Name>
+    <RootNamespace>DinoGame</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="DinoGame.py" />
+    <Compile Include="moduł1.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Assets\" />
+    <Folder Include="Assets\Bird\" />
+    <Folder Include="Assets\Cactus\" />
+    <Folder Include="Assets\Dino\" />
+    <Folder Include="Assets\Other\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets\Bird\Bird1.png" />
+    <Content Include="Assets\Bird\Bird2.png" />
+    <Content Include="Assets\Cactus\LargeCactus1.png" />
+    <Content Include="Assets\Cactus\LargeCactus2.png" />
+    <Content Include="Assets\Cactus\LargeCactus3.png" />
+    <Content Include="Assets\Cactus\SmallCactus1.png" />
+    <Content Include="Assets\Cactus\SmallCactus2.png" />
+    <Content Include="Assets\Cactus\SmallCactus3.png" />
+    <Content Include="Assets\Dino\DinoDead.png" />
+    <Content Include="Assets\Dino\DinoDuck1.png" />
+    <Content Include="Assets\Dino\DinoDuck2.png" />
+    <Content Include="Assets\Dino\DinoJump.png" />
+    <Content Include="Assets\Dino\DinoRun1.png" />
+    <Content Include="Assets\Dino\DinoRun2.png" />
+    <Content Include="Assets\Dino\DinoStart.png" />
+    <Content Include="Assets\Other\Cloud.png" />
+    <Content Include="Assets\Other\GameOver.png" />
+    <Content Include="Assets\Other\Reset.png" />
+    <Content Include="Assets\Other\Track.png" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>

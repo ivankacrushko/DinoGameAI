@@ -9,6 +9,8 @@ import numpy as np
 from keyboard import press, release
 import pyautogui
 import time
+from copy import deepcopy
+
 
 
 pygame.init()
@@ -16,12 +18,15 @@ pygame.init()
 screenH = 600
 screenW = 1100
 screen = pygame.display.set_mode((screenW, screenH))
-epoka = 0
 
+epoka = 0
 death_count = 0
 total_reward = 0
 reward = 0
-
+normalized_inputs = np.array([[0, 0, 0, 0, 0]])
+q_activities = 0
+highest_score = 0
+latest_score = 0
 
 
 running = [pygame.image.load(os.path.join("Assets/Dino", "DinoRun1.png")),
@@ -62,6 +67,8 @@ class Dinosaur:
         self.dino_rect.x = self.xPos
         self.dino_rect.y = self.yPos
 
+        self.last_action_time = 0
+
     def update(self, userInput):
         if self.dino_duck:
             self.duck()
@@ -69,22 +76,31 @@ class Dinosaur:
             self.run()
         if self.dino_jump:
             self.jump()
-
+        
         if self.step_index >= 10:
             self.step_index = 0
 
         if userInput[pygame.K_UP] and not self.dino_jump:
-            self.dino_duck = False
-            self.dino_run = False
-            self.dino_jump = True
+            current_time = time.time()
+            if current_time - self.last_action_time > 2.0:
+                self.dino_duck = False
+                self.dino_run = False
+                self.dino_jump = True
+            self.last_action_time = current_time
         elif userInput[pygame.K_DOWN] and not self.dino_jump:
-            self.dino_duck = True
-            self.dino_run = False
-            self.dino_jump = False
+            current_time = time.time()
+            if current_time - self.last_action_time > 2.0:
+                self.dino_duck = True
+                self.dino_run = False
+                self.dino_jump = False
+            self.last_action_time = current_time
         elif not (self.dino_jump or userInput[pygame.K_DOWN]):
-            self.dino_duck = False
-            self.dino_run = True
-            self.dino_jump = False
+            current_time = time.time()
+            if current_time - self.last_action_time > 2.0:
+                self.dino_duck = False
+                self.dino_run = True
+                self.dino_jump = False
+            self.last_action_time = current_time
 
     def duck(self):
         self.image = self.duck_img[self.step_index // 5]
@@ -98,9 +114,11 @@ class Dinosaur:
         self.dino_rect = self.image.get_rect()
         self.dino_rect.x = self.xPos
         self.dino_rect.y = self.yPos
+        
         self.step_index += 1
 
     def jump(self):
+        
         self.image = self.jump_img
         if self.dino_jump:
             self.dino_rect.y -= self.jump_v * 4
@@ -108,6 +126,7 @@ class Dinosaur:
         if self.jump_v < - self.jumpVelocity:
             self.dino_jump = False
             self.jump_v = self.jumpVelocity
+           
 
     def draw(self, screen):
         screen.blit(self.image, (self.dino_rect.x, self.dino_rect.y))
@@ -172,28 +191,29 @@ class Bird(Obstacle):
 
 class Model:
     def __init__(self, input_size, hidden_size, output_size):
-        # Inicjalizacja wag i obci¹¿eñ dla warstwy ukrytej
         self.weights_hidden = np.random.randn(input_size, hidden_size)
         self.bias_hidden = np.zeros((1, hidden_size))
         self.weights_output = np.random.randn(hidden_size, output_size)
         self.bias_output = np.zeros((1, output_size))
 
     def forward(self, inputs):
-        # Propagacja wprzód z funkcj¹ aktywacji ReLU
         self.hidden_layer_output = relu(np.dot(inputs, self.weights_hidden) + self.bias_hidden)
-
-        # Propagacja wprzód z funkcj¹ aktywacji softmax
         self.output = softmax(np.dot(self.hidden_layer_output, self.weights_output) + self.bias_output)
 
     def calculate_loss(self, predicted, target):
         epsilon = 1e-15
         predicted = np.clip(predicted, epsilon, 1 - epsilon)
-        loss = -np.sum(target * np.log(predicted)) / len(target)
+        loss = -np.sum(target * np.log(predicted + epsilon)) / len(target)
         return loss
 
     def backward(self, inputs, target):
-        output_error = self.output - target
+        weights_hidden_gradient = np.zeros_like(self.weights_hidden)
+        bias_hidden_gradient = np.zeros_like(self.bias_hidden)
+        weights_output_gradient = np.zeros_like(self.weights_output)
+        bias_output_gradient = np.zeros_like(self.bias_output)
 
+        output_error = self.output - target
+        inputs = inputs.reshape(1, -1)
         weights_output_gradient = np.dot(self.hidden_layer_output.T, output_error)
         bias_output_gradient = np.sum(output_error, axis=0, keepdims=True)
 
@@ -212,82 +232,134 @@ class Model:
         self.weights_output -= learning_rate * weights_output_gradient
         self.bias_output -= learning_rate * bias_output_gradient
 
+class ActionFilter:
+    def __init__(self):
+        self.last_jump_time = 0  # Zmienna do monitorowania czasu od ostatniego skoku
+        self.jump_cooldown = 1.0  # Minimalny czas miêdzy kolejnymi skokami
+
+    def filter_actions(self, model_output, game_state, player):
+        filtered_actions = np.argmax(model_output)
+        print(filtered_actions)
+        if filtered_actions == 2:
+            player.dino_duck = False
+            player.dino_run = False
+            player.dino_jump = True
+            player.jump
+            
+        if filtered_actions == 1:
+            player.dino_duck = True
+            player.dino_run = False
+            player.dino_jump = False
+            player.duck
+            
+        if filtered_actions == 0:
+            player.dino_duck = False
+            player.dino_run = True
+            player.dino_jump = False
+            player.run
+
+
 def relu(x):
     return np.maximum(0, x)
 
 def softmax(x):
-    probabilities = 1 / (1 + np.exp(-x))
+    exp_values = np.exp(x - np.max(x, axis=1, keepdims=True))
+    probabilities = exp_values / np.sum(exp_values, axis=1, keepdims=True)
     #print(probabilities)
     return probabilities
 
-def reward_system(points, death_count):
-    # Przyk³adowa logika funkcji nagrody
-    
-    reward = (points/10) - death_count/3
-    #print(reward)
+def reward_system(points, death_count, q_activities):    
+    reward = (points/10) - death_count  + (q_activities*0.1)  
     return reward
     
-def standardize_data(data):
-    mean = np.mean(data, axis=0)
-    std = np.std(data, axis=0)
-    standardized_data = (data - mean) / std
-    return standardized_data
+def ocen_model(model, X_valid, y_valid):
+    total_loss = 0
+    for i in range(len(y_valid)):
+        inputs = X_valid[i]
+        target = y_valid        
+        model.forward(inputs)
+        loss = model.calculate_loss(model.output, target)
+        total_loss += loss
 
-def main2(model):
-    global total_reward, reward, death_count
-    #inputs
-    learning_rate = 0.1
-
-    normalized_inputs = np.array([0,0,0,0])
-    target_options = np.array([[0, 1, 0], [1, 0, 0], [0, 0, 1],[1,0,0]])
-   
     
-    print(normalized_inputs)
+    average_loss = total_loss / len(X_valid)
+    return average_loss
 
-    for i in range(len(normalized_inputs)):
-            inputs = normalized_inputs[i]
-            target = target_options[i]
+def main2(model, normalized_inputs, q_activities, score):
+    global total_reward, reward, death_count, highest_score
+    #inputs
+    learning_rate = 0.001
+    liczba_epok = 1000
+    X_valid = np.random.rand(20, 5)
+    y_valid = np.random.rand(20, 3)
+    total_loss = 0
+    najlepsza_epoka = 0
+    model = Model(input_size=5, hidden_size=8, output_size=3)
+    najlepsza_strata = float('inf')
 
+    target_options = np.array([0, 1, 2])
 
-            model.forward(inputs)           
-            reward = reward_system(points, death_count)
+    for epoka in range(liczba_epok):
+        for i in range(len(target_options)):
+            
+            target = target_options
+            
+            #print(normalized_inputs)
+            model.forward(normalized_inputs)           
+            reward = reward_system(points, death_count, q_activities)
             loss = model.calculate_loss(model.output, target) - reward
             
-            gradients = model.backward(inputs, target)
+            gradients = model.backward(normalized_inputs, target)
 
             model.update_weights(learning_rate, *gradients)
 
-            total_reward = total_reward + reward
+            total_reward = total_reward + reward        
+        
+        strata_walidacyjna = ocen_model(model, X_valid, y_valid)
 
+        if strata_walidacyjna < najlepsza_strata:
+            najlepsza_strata = strata_walidacyjna
+            najlepsza_epoka = epoka
+            model = deepcopy(model)       
+            
+            
+        if epoka - najlepsza_epoka >= 500:
+            print('Wczesne zatrzymanie: Brak poprawy przez 10 epok.')
+            break
+
+    
+    return model
+    #print(loss)
     #print(model.weights_output)
     #print(gradients)
-    print("nagroda: "+str(reward))
-    print("cala nagroda: "+str(total_reward))
-    print("smierci: "+str(death_count))
+    #print("nagroda: "+str(reward))
+    #print("cala nagroda: "+str(total_reward))
+    #print("smierci: "+str(death_count))
     #print(action)
 
 def main():
-    global game_speed, x_pos_bg, y_pos_bg, points,death_count, obstacles, obstacle_distance, obstacle_width, obstacle_height
+    global game_speed, x_pos_bg, y_pos_bg, points,death_count,normalized_inputs, q_activities, highest_score,latest_score, obstacles, obstacle_distance, obstacle_width, obstacle_height
 
     run = True
     clock = pygame.time.Clock()
     player = Dinosaur()
     cloud = Cloud()
-    game_speed = 14
+    game_speed = 20
     x_pos_bg = 0
     y_pos_bg = 380
     points = 0
     obstacles = []
-    
+    font = pygame.font.Font('freesansbold.ttf', 20)
+
     obstacle_distance = 0
     obstacle_width = 0
     obstacle_height = 0
+    is_flying = 0
 
-    font = pygame.font.Font('freesansbold.ttf', 20)
-
-    model = Model(4,4,3)
-    main2(model)
-
+    #model = Model(4,16,3)
+    model = 0
+    model = main2(model, normalized_inputs, q_activities, latest_score)
+    print(model.output)
     while run:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -295,57 +367,44 @@ def main():
 
         screen.fill((255,255,255))
         userInput = pygame.key.get_pressed()
-        
         player.draw(screen)
         player.update(userInput)
-        
+        filtr = ActionFilter()
+
         ####
-        inputs = np.array([[obstacle_distance, obstacle_height, obstacle_width, game_speed]])
-        
-        
-        normalized_inputs = np.array([(obstacle_distance - 300)/(150-300),
+        inputs = np.array([[obstacle_distance, obstacle_height, obstacle_width, game_speed, is_flying]]) 
+        normalized_inputs = np.array([(obstacle_distance - 290)/(200-290),
                          (obstacle_height - 65)/(97-65),
                          (obstacle_width-40)/(105-40),
-                         (game_speed - 14)/(100-14)])
+                         (game_speed*0.01),
+                         (is_flying)])
+        
 
-        target_options = np.array([[0, 1, 0], [1, 0, 0], [0, 0, 1],[1,0,0]])
+        model.forward(normalized_inputs)
+        if player.dino_duck == False and player.dino_jump == False and player.dino_run == True:
+            gameStatus = True
+        else:
+            gameStatus = False
 
-        model.forward(inputs)
-        action = np.argmax(model.output)
+        
+        filtr.filter_actions(model.output, gameStatus, player)
+        
+
         
         
-         
-
-        
-        #print(action)
-        #print(np.argmax(model.output))
-
-        if action == 0:
-            player.dino_duck = False
-            player.dino_run = True
-            player.dino_jump = False
-            player.run
-            
-        elif action == 1:
-                player.dino_duck = True
-                player.dino_run = False
-                player.dino_jump = False
-                player.duck
-        elif action == 2:
-                player.dino_duck = False
-                player.dino_run = False
-                player.dino_jump = True
-                player.jump
-
         ####
 
         if len(obstacles) == 0:
             if random.randint(0,2) == 0:
                 obstacles.append(SmallCactus(smallCactus))
+                is_flying = 0
             elif random.randint(0,2) == 1:
                 obstacles.append(LargeCactus(largeCactus))
+                is_flying = 0
             elif random.randint(0,2) == 2:
                 obstacles.append(Bird(bird))
+                is_flying = 1
+
         
 
         for obstacle in obstacles:
@@ -354,7 +413,9 @@ def main():
             if player.dino_rect.colliderect(obstacle.rect):
                 pygame.time.delay(0)
                 death_count += 1
+                latest_score = points
                 menu(death_count)
+                
 
         try:
             obstacle_distance = obstacles[-1].rect.x
@@ -363,18 +424,23 @@ def main():
         except:
             pass
 
-        
+        if points > highest_score:
+            highest_score = points
 
-        def score():
+        def score(highest_score):
             global points, game_speed
             points += 1
             if points % 100 == 0:
-                game_speed +=1
-
+                game_speed +=1            
             text = font.render("Points: " + str(points), True, (0,0,0))
             textRect = text.get_rect()
             textRect.center = (1000,40)
             screen.blit(text, textRect)
+
+            text1 = font.render("Highest Score: " + str(highest_score), True, (0,0,0))
+            textRect = text1.get_rect()
+            textRect.center = (1000,60)
+            screen.blit(text1, textRect)
 
         def backgroundDraw():
             global x_pos_bg, y_pos_bg
@@ -391,7 +457,7 @@ def main():
         backgroundDraw()
         cloud.draw(screen)
         cloud.update()
-        score()        
+        score(highest_score)        
         clock.tick(30)
         pygame.display.update()
 
@@ -405,6 +471,7 @@ def main():
                 if death_count == 0:
                     text = font.render("Press any key to start", True, (0,0,0))
                 elif death_count > 0:
+                    latest_score = points
                     text = font.render("Press any key to restart", True, (0,0,0))
                     score = font.render("Your score: " +str(points), True, (0,0,0))
                     scoreRect = score.get_rect()
@@ -418,10 +485,9 @@ def main():
                 for event in pygame.event.get():
                     if event.type ==pygame.QUIT:
                         run = False
-                    #if event.type == pygame.KEYDOWN:
-                        #main()
-                    else:
+                    if event.type == pygame.KEYDOWN:
                         main()
+                    
 
     
 main()

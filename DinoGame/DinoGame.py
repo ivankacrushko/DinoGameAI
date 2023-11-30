@@ -46,10 +46,10 @@ cloud = pygame.image.load(os.path.join("Assets/Other", "Cloud.png"))
 background = pygame.image.load(os.path.join("Assets/Other", "Track.png"))
 
 class Dinosaur:
-    xPos = 80
-    yPos = 310
-    yPosDuck = 340
-    jumpVelocity = 8.5
+    X_POS = 80
+    Y_POS = 310
+    Y_POS_DUCK = 340
+    JUMP_VEL = 8.5
 
     def __init__(self):
         self.duck_img = ducking
@@ -59,77 +59,66 @@ class Dinosaur:
         self.dino_duck = False
         self.dino_run = True
         self.dino_jump = False
+        self.is_jumping = False
 
         self.step_index = 0
-        self.jump_v = self.jumpVelocity
+        self.jump_vel = self.JUMP_VEL
         self.image = self.run_img[0]
         self.dino_rect = self.image.get_rect()
-        self.dino_rect.x = self.xPos
-        self.dino_rect.y = self.yPos
+        self.dino_rect.x = self.X_POS
+        self.dino_rect.y = self.Y_POS
 
-        self.last_action_time = 0
-
-    def update(self, userInput):
+    def update(self, userInput, nnInput):
         if self.dino_duck:
             self.duck()
         if self.dino_run:
             self.run()
         if self.dino_jump:
             self.jump()
-        
+
         if self.step_index >= 10:
             self.step_index = 0
 
-        if userInput[pygame.K_UP] and not self.dino_jump:
-            current_time = time.time()
-            if current_time - self.last_action_time > 2.0:
-                self.dino_duck = False
-                self.dino_run = False
-                self.dino_jump = True
-            self.last_action_time = current_time
-        elif userInput[pygame.K_DOWN] and not self.dino_jump:
-            current_time = time.time()
-            if current_time - self.last_action_time > 2.0:
-                self.dino_duck = True
-                self.dino_run = False
-                self.dino_jump = False
-            self.last_action_time = current_time
+        if (userInput[pygame.K_UP] or nnInput[2]) and not self.dino_jump:
+            self.dino_duck = False
+            self.dino_run = False
+            self.dino_jump = True
+            self.is_jumping = True
+            self.jump_vel = self.JUMP_VEL
+        elif (userInput[pygame.K_DOWN] or nnInput[1]) and not self.dino_jump:
+            self.dino_duck = True
+            self.dino_run = False
+            self.dino_jump = False
         elif not (self.dino_jump or userInput[pygame.K_DOWN]):
-            current_time = time.time()
-            if current_time - self.last_action_time > 2.0:
-                self.dino_duck = False
-                self.dino_run = True
-                self.dino_jump = False
-            self.last_action_time = current_time
+            self.dino_duck = False
+            self.dino_run = True
+            self.dino_jump = False
+
+    def jump(self):
+        self.image = self.jump_img
+        if self.dino_jump:
+            self.dino_rect.y -= self.jump_vel * 4
+            self.jump_vel -= 0.8
+        if self.dino_rect.y >= self.Y_POS:
+            self.dino_jump = False            
+            self.jump_vel = self.JUMP_VEL
 
     def duck(self):
         self.image = self.duck_img[self.step_index // 5]
         self.dino_rect = self.image.get_rect()
-        self.dino_rect.x = self.xPos
-        self.dino_rect.y = self.yPosDuck
+        self.dino_rect.x = self.X_POS
+        self.dino_rect.y = self.Y_POS_DUCK
         self.step_index += 1
 
     def run(self):
         self.image = self.run_img[self.step_index // 5]
         self.dino_rect = self.image.get_rect()
-        self.dino_rect.x = self.xPos
-        self.dino_rect.y = self.yPos
-        
+        self.dino_rect.x = self.X_POS
+        self.dino_rect.y = self.Y_POS
         self.step_index += 1
 
-    def jump(self):
-        
-        self.image = self.jump_img
-        if self.dino_jump:
-            self.dino_rect.y -= self.jump_v * 4
-            self.jump_v -= 0.8
-        if self.jump_v < - self.jumpVelocity:
-            self.dino_jump = False
-            self.jump_v = self.jumpVelocity
-           
-
-    def draw(self, screen):
-        screen.blit(self.image, (self.dino_rect.x, self.dino_rect.y))
+    def draw(self, SCREEN):
+        SCREEN.blit(self.image, (self.dino_rect.x, self.dino_rect.y))
 
 class Cloud:
     def __init__(self):
@@ -156,10 +145,8 @@ class Obstacle:
 
     def update(self):
         self.rect.x -= game_speed
-        
         if self.rect.x < -self.rect.width:
             obstacles.pop()
-
 
     def draw(self, screen):
         screen.blit(self.image[self.type], self.rect)
@@ -232,31 +219,16 @@ class Model:
         self.weights_output -= learning_rate * weights_output_gradient
         self.bias_output -= learning_rate * bias_output_gradient
 
-class ActionFilter:
-    def __init__(self):
-        self.last_jump_time = 0  # Zmienna do monitorowania czasu od ostatniego skoku
-        self.jump_cooldown = 1.0  # Minimalny czas miêdzy kolejnymi skokami
 
-    def filter_actions(self, model_output, game_state, player):
-        filtered_actions = np.argmax(model_output)
-        print(filtered_actions)
-        if filtered_actions == 2:
-            player.dino_duck = False
-            player.dino_run = False
-            player.dino_jump = True
-            player.jump
-            
-        if filtered_actions == 1:
-            player.dino_duck = True
-            player.dino_run = False
-            player.dino_jump = False
-            player.duck
-            
-        if filtered_actions == 0:
-            player.dino_duck = False
-            player.dino_run = True
-            player.dino_jump = False
-            player.run
+
+def filter_actions(model_output):
+    if np.argmax(model_output) == 2:
+        filtered_action = [False, False, True]
+    if np.argmax(model_output) == 1:
+        filtered_action = [False, True, False]
+    if np.argmax(model_output) == 0:
+        filtered_action = [True, False, False]
+    return filtered_action
 
 
 def relu(x):
@@ -280,7 +252,6 @@ def ocen_model(model, X_valid, y_valid):
         model.forward(inputs)
         loss = model.calculate_loss(model.output, target)
         total_loss += loss
-
     
     average_loss = total_loss / len(X_valid)
     return average_loss
@@ -292,12 +263,19 @@ def main2(model, normalized_inputs, q_activities, score):
     liczba_epok = 1000
     X_valid = np.random.rand(20, 5)
     y_valid = np.random.rand(20, 3)
-    total_loss = 0
     najlepsza_epoka = 0
-    model = Model(input_size=5, hidden_size=8, output_size=3)
+    mvp = 0
+    model = Model(input_size=5, hidden_size=16, output_size=3)
     najlepsza_strata = float('inf')
 
     target_options = np.array([0, 1, 2])
+
+    if score >= highest_score:
+        mvp = najlepsza_epoka
+        print("Aktualizacja modelu")
+    elif score < highest_score:
+        najlepsza_epoka = mvp
+        print("Wczytany poprzedni model")
 
     for epoka in range(liczba_epok):
         for i in range(len(target_options)):
@@ -320,22 +298,18 @@ def main2(model, normalized_inputs, q_activities, score):
         if strata_walidacyjna < najlepsza_strata:
             najlepsza_strata = strata_walidacyjna
             najlepsza_epoka = epoka
-            model = deepcopy(model)       
             
             
+            model = deepcopy(model)  
+         
+        
+
         if epoka - najlepsza_epoka >= 500:
-            print('Wczesne zatrzymanie: Brak poprawy przez 10 epok.')
+           # print('Wczesne zatrzymanie: Brak poprawy przez 500 epok.')
             break
 
-    
-    return model
-    #print(loss)
-    #print(model.weights_output)
     #print(gradients)
-    #print("nagroda: "+str(reward))
-    #print("cala nagroda: "+str(total_reward))
-    #print("smierci: "+str(death_count))
-    #print(action)
+    return model
 
 def main():
     global game_speed, x_pos_bg, y_pos_bg, points,death_count,normalized_inputs, q_activities, highest_score,latest_score, obstacles, obstacle_distance, obstacle_width, obstacle_height
@@ -355,11 +329,10 @@ def main():
     obstacle_width = 0
     obstacle_height = 0
     is_flying = 0
-
-    #model = Model(4,16,3)
+    
     model = 0
     model = main2(model, normalized_inputs, q_activities, latest_score)
-    print(model.output)
+    #print(model.output)
     while run:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -368,8 +341,7 @@ def main():
         screen.fill((255,255,255))
         userInput = pygame.key.get_pressed()
         player.draw(screen)
-        player.update(userInput)
-        filtr = ActionFilter()
+        
 
         ####
         inputs = np.array([[obstacle_distance, obstacle_height, obstacle_width, game_speed, is_flying]]) 
@@ -386,9 +358,7 @@ def main():
         else:
             gameStatus = False
 
-        
-        filtr.filter_actions(model.output, gameStatus, player)
-        
+        player.update(userInput, filter_actions(model.output))
 
         
         

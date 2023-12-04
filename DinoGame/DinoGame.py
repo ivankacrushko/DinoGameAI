@@ -10,6 +10,7 @@ from keyboard import press, release
 import pyautogui
 import time
 from copy import deepcopy
+from sklearn.preprocessing import StandardScaler
 
 
 
@@ -27,6 +28,7 @@ normalized_inputs = np.array([[0, 0, 0, 0, 0]])
 q_activities = 0
 highest_score = 0
 latest_score = 0
+train_data = np.random.rand(20, 5)
 
 
 running = [pygame.image.load(os.path.join("Assets/Dino", "DinoRun1.png")),
@@ -178,14 +180,20 @@ class Bird(Obstacle):
 
 class Model:
     def __init__(self, input_size, hidden_size, output_size):
-        self.weights_hidden = np.random.randn(input_size, hidden_size)
+        # Inicjalizacja wag z u¿yciem Xavier
+        self.weights_hidden = initialize_weights_xavier(input_size, hidden_size)
         self.bias_hidden = np.zeros((1, hidden_size))
-        self.weights_output = np.random.randn(hidden_size, output_size)
+
+        self.weights_hidden2 = initialize_weights_xavier(hidden_size, hidden_size)
+        self.bias_hidden2 = np.zeros((1, hidden_size))
+
+        self.weights_output = initialize_weights_xavier(hidden_size, output_size)
         self.bias_output = np.zeros((1, output_size))
 
     def forward(self, inputs):
         self.hidden_layer_output = relu(np.dot(inputs, self.weights_hidden) + self.bias_hidden)
-        self.output = softmax(np.dot(self.hidden_layer_output, self.weights_output) + self.bias_output)
+        self.hidden_layer2_output = relu(np.dot(self.hidden_layer_output, self.weights_hidden2) + self.bias_hidden2)
+        self.output = softmax(np.dot(self.hidden_layer2_output, self.weights_output) + self.bias_output)
 
     def calculate_loss(self, predicted, target):
         epsilon = 1e-15
@@ -196,6 +204,8 @@ class Model:
     def backward(self, inputs, target):
         weights_hidden_gradient = np.zeros_like(self.weights_hidden)
         bias_hidden_gradient = np.zeros_like(self.bias_hidden)
+        weights_hidden2_gradient = np.zeros_like(self.weights_hidden2)
+        bias_hidden2_gradient = np.zeros_like(self.bias_hidden2)
         weights_output_gradient = np.zeros_like(self.weights_output)
         bias_output_gradient = np.zeros_like(self.bias_output)
 
@@ -207,18 +217,26 @@ class Model:
         hidden_error = np.dot(output_error, self.weights_output.T)
         hidden_error[self.hidden_layer_output <= 0] = 0
 
+        hidden2_error = np.dot(output_error, self.weights_output.T)
+        hidden2_error[self.hidden_layer2_output <= 0] = 0
+
         weights_hidden_gradient = np.dot(inputs.T, hidden_error)
         bias_hidden_gradient = np.sum(hidden_error, axis=0, keepdims=True)
 
-        return weights_hidden_gradient, bias_hidden_gradient, weights_output_gradient, bias_output_gradient
+        weights_hidden2_gradient = np.dot(self.hidden_layer_output.T, hidden2_error)
+        bias_hidden2_gradient = np.sum(hidden2_error, axis=0, keepdims=True)
 
-    def update_weights(self, learning_rate, weights_hidden_gradient, bias_hidden_gradient, weights_output_gradient, bias_output_gradient):
+        return weights_hidden_gradient, bias_hidden_gradient, weights_output_gradient, bias_output_gradient, weights_hidden2_gradient, bias_hidden2_gradient
+
+    def update_weights(self, learning_rate, weights_hidden_gradient, bias_hidden_gradient, weights_output_gradient, bias_output_gradient, weights_hidden2_gradient, bias_hidden2_gradient):
         self.weights_hidden -= learning_rate * weights_hidden_gradient
         self.bias_hidden -= learning_rate * bias_hidden_gradient
 
         self.weights_output -= learning_rate * weights_output_gradient
         self.bias_output -= learning_rate * bias_output_gradient
 
+        self.weights_hidden2 -= learning_rate * weights_hidden2_gradient
+        self.bias_hidden2 -= learning_rate * bias_hidden2_gradient
 
 
 def filter_actions(model_output):
@@ -230,9 +248,17 @@ def filter_actions(model_output):
         filtered_action = [True, False, False]
     return filtered_action
 
+def initialize_weights_xavier(input_size, output_size):
+    variance = 2.0 / (input_size + output_size)
+    std_dev = np.sqrt(variance)
+    return np.random.randn(input_size, output_size) * std_dev
 
 def relu(x):
-    return np.maximum(0, x)
+    #return np.maximum(0, x)
+    return 1 / (1 + np.exp(-x))
+
+def leaky_relu(x, alpha=0.01):
+    return np.maximum(alpha * x, x)
 
 def softmax(x):
     exp_values = np.exp(x - np.max(x, axis=1, keepdims=True))
@@ -256,63 +282,51 @@ def ocen_model(model, X_valid, y_valid):
     average_loss = total_loss / len(X_valid)
     return average_loss
 
-def main2(model, normalized_inputs, q_activities, score):
-    global total_reward, reward, death_count, highest_score
+model = Model(input_size=5, hidden_size=10, output_size=3)
+
+def main2(inputs, q_activities, score):
+    global total_reward, reward, death_count, highest_score, model
     #inputs
-    learning_rate = 0.001
+    learning_rate = 0.01
     liczba_epok = 1000
-    X_valid = np.random.rand(20, 5)
-    y_valid = np.random.rand(20, 3)
+    target_options = np.array([[1, 0, 0], [0,1,0], [0,0,1]])
+
+    X_valid = np.random.rand(100, 5)
+    y_valid = np.random.rand(100, 3)
+    X_train = inputs
+    y_train = np.random.rand(np.shape(X_train)[0], 3)
+
     najlepsza_epoka = 0
-    mvp = 0
-    model = Model(input_size=5, hidden_size=16, output_size=3)
     najlepsza_strata = float('inf')
-
-    target_options = np.array([0, 1, 2])
-
-    if score >= highest_score:
-        mvp = najlepsza_epoka
-        print("Aktualizacja modelu")
-    elif score < highest_score:
-        najlepsza_epoka = mvp
-        print("Wczytany poprzedni model")
-
+    
     for epoka in range(liczba_epok):
-        for i in range(len(target_options)):
-            
-            target = target_options
-            
-            #print(normalized_inputs)
-            model.forward(normalized_inputs)           
-            reward = reward_system(points, death_count, q_activities)
-            loss = model.calculate_loss(model.output, target) - reward
-            
-            gradients = model.backward(normalized_inputs, target)
-
+        for i in range(len(X_train)):
+            inputs = X_train[i]
+            target = y_train[i]
+           
+            model.forward(inputs)
+            loss = model.calculate_loss(model.output, target)
+            gradients = model.backward(inputs, target)
             model.update_weights(learning_rate, *gradients)
 
-            total_reward = total_reward + reward        
-        
         strata_walidacyjna = ocen_model(model, X_valid, y_valid)
 
         if strata_walidacyjna < najlepsza_strata:
             najlepsza_strata = strata_walidacyjna
-            najlepsza_epoka = epoka
-            
-            
+            najlepsza_epoka = epoka            
             model = deepcopy(model)  
-         
-        
 
-        if epoka - najlepsza_epoka >= 500:
-           # print('Wczesne zatrzymanie: Brak poprawy przez 500 epok.')
+        if epoka - najlepsza_epoka >= 100:
+            #print('Wczesne zatrzymanie: Brak poprawy przez 500 epok.')
             break
-
-    #print(gradients)
-    return model
+    print(loss)
+    #print(model.output)
+    #input(target)
+    #input(gradients)
+    return model, np.random.rand(5)
 
 def main():
-    global game_speed, x_pos_bg, y_pos_bg, points,death_count,normalized_inputs, q_activities, highest_score,latest_score, obstacles, obstacle_distance, obstacle_width, obstacle_height
+    global game_speed, x_pos_bg, y_pos_bg, points,death_count,normalized_inputs, q_activities,train_data, highest_score,latest_score, obstacles, obstacle_distance, obstacle_width, obstacle_height
 
     run = True
     clock = pygame.time.Clock()
@@ -330,9 +344,8 @@ def main():
     obstacle_height = 0
     is_flying = 0
     
-    model = 0
-    model = main2(model, normalized_inputs, q_activities, latest_score)
-    #print(model.output)
+    model, train_data = main2(train_data, q_activities, latest_score)
+    #print(model)
     while run:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -351,13 +364,12 @@ def main():
                          (game_speed*0.01),
                          (is_flying)])
         
+        train_data = np.vstack((train_data, normalized_inputs))
+        #print(train_data)
+        #input(str(model.weights_output)+"STARE")
+        #print()
 
         model.forward(normalized_inputs)
-        if player.dino_duck == False and player.dino_jump == False and player.dino_run == True:
-            gameStatus = True
-        else:
-            gameStatus = False
-
         player.update(userInput, filter_actions(model.output))
 
         

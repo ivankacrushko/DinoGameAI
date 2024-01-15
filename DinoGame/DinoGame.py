@@ -1,6 +1,4 @@
-
-from email.mime import image
-from turtle import Screen, screensize
+ï»¿
 import pygame
 import os
 import random
@@ -11,6 +9,7 @@ import pyautogui
 import time
 from copy import deepcopy
 from sklearn.preprocessing import StandardScaler
+from scipy import stats
 
 
 
@@ -20,16 +19,20 @@ screenH = 600
 screenW = 1100
 screen = pygame.display.set_mode((screenW, screenH))
 
-epoka = 0
-death_count = 0
-total_reward = 0
-reward = 0
-normalized_inputs = np.array([[0, 0, 0, 0, 0]])
-q_activities = 0
-highest_score = 0
-latest_score = 0
-train_data = np.random.rand(20, 5)
 
+highest_score = 0
+
+file_path = 'train_data.txt'
+loaded_data_str = np.loadtxt(file_path, dtype=str)
+loaded_data = loaded_data_str.astype(int)
+train_X = loaded_data[:, :5]  
+train_Y = loaded_data[:, 5:]  
+
+norm_train_X = []
+for row in train_X:
+    X_norm = (row-row.mean())/row.std()   
+    norm_train_X.append(X_norm)    
+norm_train_X = np.array(norm_train_X)
 
 running = [pygame.image.load(os.path.join("Assets/Dino", "DinoRun1.png")),
            pygame.image.load(os.path.join("Assets/Dino", "DinoRun2.png"))]
@@ -178,67 +181,6 @@ class Bird(Obstacle):
         screen.blit(self.image[self.index//5], self.rect)
         self.index += 1
 
-class Model:
-    def __init__(self, input_size, hidden_size, output_size):
-        # Inicjalizacja wag z u¿yciem Xavier
-        self.weights_hidden = initialize_weights_xavier(input_size, hidden_size)
-        self.bias_hidden = np.zeros((1, hidden_size))
-
-        self.weights_hidden2 = initialize_weights_xavier(hidden_size, hidden_size)
-        self.bias_hidden2 = np.zeros((1, hidden_size))
-
-        self.weights_output = initialize_weights_xavier(hidden_size, output_size)
-        self.bias_output = np.zeros((1, output_size))
-
-    def forward(self, inputs):
-        self.hidden_layer_output = relu(np.dot(inputs, self.weights_hidden) + self.bias_hidden)
-        self.hidden_layer2_output = relu(np.dot(self.hidden_layer_output, self.weights_hidden2) + self.bias_hidden2)
-        self.output = softmax(np.dot(self.hidden_layer2_output, self.weights_output) + self.bias_output)
-
-    def calculate_loss(self, predicted, target):
-        epsilon = 1e-15
-        predicted = np.clip(predicted, epsilon, 1 - epsilon)
-        loss = -np.sum(target * np.log(predicted + epsilon)) / len(target)
-        return loss
-
-    def backward(self, inputs, target):
-        weights_hidden_gradient = np.zeros_like(self.weights_hidden)
-        bias_hidden_gradient = np.zeros_like(self.bias_hidden)
-        weights_hidden2_gradient = np.zeros_like(self.weights_hidden2)
-        bias_hidden2_gradient = np.zeros_like(self.bias_hidden2)
-        weights_output_gradient = np.zeros_like(self.weights_output)
-        bias_output_gradient = np.zeros_like(self.bias_output)
-
-        output_error = self.output - target
-        inputs = inputs.reshape(1, -1)
-        weights_output_gradient = np.dot(self.hidden_layer_output.T, output_error)
-        bias_output_gradient = np.sum(output_error, axis=0, keepdims=True)
-
-        hidden_error = np.dot(output_error, self.weights_output.T)
-        hidden_error[self.hidden_layer_output <= 0] = 0
-
-        hidden2_error = np.dot(output_error, self.weights_output.T)
-        hidden2_error[self.hidden_layer2_output <= 0] = 0
-
-        weights_hidden_gradient = np.dot(inputs.T, hidden_error)
-        bias_hidden_gradient = np.sum(hidden_error, axis=0, keepdims=True)
-
-        weights_hidden2_gradient = np.dot(self.hidden_layer_output.T, hidden2_error)
-        bias_hidden2_gradient = np.sum(hidden2_error, axis=0, keepdims=True)
-
-        return weights_hidden_gradient, bias_hidden_gradient, weights_output_gradient, bias_output_gradient, weights_hidden2_gradient, bias_hidden2_gradient
-
-    def update_weights(self, learning_rate, weights_hidden_gradient, bias_hidden_gradient, weights_output_gradient, bias_output_gradient, weights_hidden2_gradient, bias_hidden2_gradient):
-        self.weights_hidden -= learning_rate * weights_hidden_gradient
-        self.bias_hidden -= learning_rate * bias_hidden_gradient
-
-        self.weights_output -= learning_rate * weights_output_gradient
-        self.bias_output -= learning_rate * bias_output_gradient
-
-        self.weights_hidden2 -= learning_rate * weights_hidden2_gradient
-        self.bias_hidden2 -= learning_rate * bias_hidden2_gradient
-
-
 def filter_actions(model_output):
     if np.argmax(model_output) == 2:
         filtered_action = [False, False, True]
@@ -246,91 +188,189 @@ def filter_actions(model_output):
         filtered_action = [False, True, False]
     if np.argmax(model_output) == 0:
         filtered_action = [True, False, False]
+    
     return filtered_action
 
-def initialize_weights_xavier(input_size, output_size):
-    variance = 2.0 / (input_size + output_size)
-    std_dev = np.sqrt(variance)
-    return np.random.randn(input_size, output_size) * std_dev
+def detect_action(dino):
+    actions = [dino.dino_run, dino.dino_duck, dino.dino_jump]
+    if actions == [True, False, False]:
+       return [1,0,0]
+    elif actions == [False, True, False]:        
+        return [0,1,0]
+    elif actions == [False, False, True]:
+        return [0,0,1]
+    else:
+        print("ERRROR") 
 
-def relu(x):
-    #return np.maximum(0, x)
-    return 1 / (1 + np.exp(-x))
 
-def leaky_relu(x, alpha=0.01):
-    return np.maximum(alpha * x, x)
+
+def init_layers(nn_architecture, seed = 99):
+    np.random.seed(seed)
+    number_of_layers = len(nn_architecture)
+    params_values = {}
+    
+    for idx, layer in enumerate(nn_architecture):
+        layer_idx = idx + 1
+        
+        layer_input_size = layer["input_dim"]
+        layer_output_size = layer["output_dim"]
+        
+        params_values['W' + str(layer_idx)] = np.random.randn(
+            layer_output_size, layer_input_size) * 0.1
+        params_values['b' + str(layer_idx)] = np.random.randn(
+            layer_output_size, 1) * 0.1
+        
+    return params_values
+
+def sigmoid(Z):
+    return 1/(1+np.exp(-Z))
 
 def softmax(x):
-    exp_values = np.exp(x - np.max(x, axis=1, keepdims=True))
-    probabilities = exp_values / np.sum(exp_values, axis=1, keepdims=True)
-    #print(probabilities)
-    return probabilities
+    exp_x = np.exp(x - np.max(x))
+    return exp_x / np.sum(exp_x, axis=0, keepdims=True)
 
-def reward_system(points, death_count, q_activities):    
-    reward = (points/10) - death_count  + (q_activities*0.1)  
-    return reward
+def softmax_backward(softmax_values, target_labels):
+    return softmax_values - target_labels
+
+def sigmoid_backward(dA, Z):
+    sig = sigmoid(Z)
+    return dA * sig * (1 - sig)
+
+
+def single_layer_forward_propagation(A_prev, W_curr, b_curr, activation="sigmoid"):
+    Z_curr = np.dot(W_curr, A_prev) + b_curr
+    if activation is "softmax":
+        activation_func = softmax
+    elif activation is "sigmoid":
+        activation_func = sigmoid
+    else:
+        raise Exception('error')
     
-def ocen_model(model, X_valid, y_valid):
-    total_loss = 0
-    for i in range(len(y_valid)):
-        inputs = X_valid[i]
-        target = y_valid        
-        model.forward(inputs)
-        loss = model.calculate_loss(model.output, target)
-        total_loss += loss
+    return activation_func(Z_curr), Z_curr
+
+def full_forward_propagation(X, params_values, nn_architecture):
     
-    average_loss = total_loss / len(X_valid)
-    return average_loss
+    memory = {}
+    A_curr = X
+    for idx, layer in enumerate(nn_architecture):
+        layer_idx = idx + 1
+        A_prev = A_curr
+        
+        activ_function_curr = layer["activation"]
+        W_curr = params_values["W" + str(layer_idx)]
+        b_curr = params_values["b" + str(layer_idx)]
+        A_curr, Z_curr = single_layer_forward_propagation(A_prev, W_curr, b_curr, activ_function_curr)
+        
+        memory["A" + str(idx)] = A_prev
+        memory["Z" + str(layer_idx)] = Z_curr
+        
+    return A_curr, memory
 
-model = Model(input_size=5, hidden_size=10, output_size=3)
+def get_cost_value(Y_hat, Y):
+    epsilon = 1e-15  
+    Y_hat = np.clip(Y_hat, epsilon, 1 - epsilon)
+    cross_entropy = - np.sum(Y * np.log(Y_hat))
+    cross_entropy /= len(Y)
 
-def main2(inputs, q_activities, score):
-    global total_reward, reward, death_count, highest_score, model
-    #inputs
-    learning_rate = 0.01
-    liczba_epok = 1000
-    target_options = np.array([[1, 0, 0], [0,1,0], [0,0,1]])
+    return cross_entropy
 
-    X_valid = np.random.rand(100, 5)
-    y_valid = np.random.rand(100, 3)
-    X_train = inputs
-    y_train = np.random.rand(np.shape(X_train)[0], 3)
+def convert_prob_into_class(probs):
+    probs_ = np.copy(probs)
+    probs_[probs_ > 0.5] = 1
+    probs_[probs_ <= 0.5] = 0
+    return probs_
 
-    najlepsza_epoka = 0
-    najlepsza_strata = float('inf')
+def get_accuracy_value(Y_hat, Y):
+    Y_hat_ = convert_prob_into_class(Y_hat)
+    return (Y_hat_ == Y).all(axis=0).mean()
+
+def single_layer_backward_propagation(dA_curr, W_curr, b_curr, Z_curr, A_prev, activation="sigmoid"):
+    m = A_prev.shape[1]
+    if activation is "softmax":
+        backward_activation_func = softmax_backward
+    elif activation is "sigmoid":
+        backward_activation_func = sigmoid_backward
+    else:
+        raise Exception('error')
     
-    for epoka in range(liczba_epok):
-        for i in range(len(X_train)):
-            inputs = X_train[i]
-            target = y_train[i]
-           
-            model.forward(inputs)
-            loss = model.calculate_loss(model.output, target)
-            gradients = model.backward(inputs, target)
-            model.update_weights(learning_rate, *gradients)
+    dZ_curr = backward_activation_func(dA_curr, Z_curr)
+    
+    dW_curr = np.dot(dZ_curr, A_prev.T) / m
+    db_curr = np.sum(dZ_curr, axis=1, keepdims=True) / m
+    dA_prev = np.dot(W_curr.T, dZ_curr)
 
-        strata_walidacyjna = ocen_model(model, X_valid, y_valid)
+    return dA_prev, dW_curr, db_curr
 
-        if strata_walidacyjna < najlepsza_strata:
-            najlepsza_strata = strata_walidacyjna
-            najlepsza_epoka = epoka            
-            model = deepcopy(model)  
+def full_backward_propagation(Y_hat, Y, memory, params_values, nn_architecture):
+    grads_values = {}
+    m = Y.shape[1]
+    Y = Y.reshape(Y_hat.shape)
+    dA_prev = - (np.divide(Y, Y_hat) - np.divide(1 - Y, 1 - Y_hat));
+    
+    for layer_idx_prev, layer in reversed(list(enumerate(nn_architecture))):
+        layer_idx_curr = layer_idx_prev + 1
+        activ_function_curr = layer["activation"]
+        
+        dA_curr = dA_prev
+        
+        A_prev = memory["A" + str(layer_idx_prev)]
+        Z_curr = memory["Z" + str(layer_idx_curr)]
+        
+        W_curr = params_values["W" + str(layer_idx_curr)]
+        b_curr = params_values["b" + str(layer_idx_curr)]
+        
+        dA_prev, dW_curr, db_curr = single_layer_backward_propagation(
+            dA_curr, W_curr, b_curr, Z_curr, A_prev, activ_function_curr)
+        
+        grads_values["dW" + str(layer_idx_curr)] = dW_curr
+        grads_values["db" + str(layer_idx_curr)] = db_curr
+    
+    return grads_values
 
-        if epoka - najlepsza_epoka >= 100:
-            #print('Wczesne zatrzymanie: Brak poprawy przez 500 epok.')
-            break
-    print(loss)
-    #print(model.output)
-    #input(target)
-    #input(gradients)
-    return model, np.random.rand(5)
+def update(params_values, grads_values, nn_architecture, learning_rate):
+    for layer_idx, layer in enumerate(nn_architecture, 1):
+        params_values["W" + str(layer_idx)] -= learning_rate * grads_values["dW" + str(layer_idx)]        
+        params_values["b" + str(layer_idx)] -= learning_rate * grads_values["db" + str(layer_idx)]
+
+    return params_values;
+
+def train(X, Y, nn_architecture, epochs, learning_rate, verbose=False, callback=None):
+    params_values = init_layers(nn_architecture, 99)
+    cost_history = []
+    accuracy_history = []
+    
+    for i in range(epochs):
+        Y_hat, cashe = full_forward_propagation(X, params_values, nn_architecture)   
+        cost = get_cost_value(Y_hat, Y)
+        cost_history.append(cost)
+        accuracy = get_accuracy_value(Y_hat, Y)
+        accuracy_history.append(accuracy)
+        grads_values = full_backward_propagation(Y_hat, Y, cashe, params_values, nn_architecture)
+        params_values = update(params_values, grads_values, nn_architecture, learning_rate)
+        
+        if(i % 50 == 0):
+            if(verbose):
+                print("Iteration: {:05} - cost: {:.5f} - accuracy: {:.5f}".format(i, cost, accuracy))
+            if(callback is not None):
+                callback(i, params_values)
+            
+    return params_values
+
+NN_ARCHITECTURE = [
+        {"input_dim": 5, "output_dim": 4, "activation": "sigmoid"},
+        {"input_dim": 4, "output_dim": 3, "activation": "softmax"},
+    ] 
+
+
+gen1 = train(np.transpose(train_X), np.transpose(train_Y), NN_ARCHITECTURE, 1000, 0.0009)
+
+
 
 def main():
-    global game_speed, x_pos_bg, y_pos_bg, points,death_count,normalized_inputs, q_activities,train_data, highest_score,latest_score, obstacles, obstacle_distance, obstacle_width, obstacle_height
-
+    global model, game_speed, x_pos_bg, y_pos_bg,highest_score, points,obstacles, obstacle_distance, obstacle_width, obstacle_height
     run = True
     clock = pygame.time.Clock()
-    player = Dinosaur()
+    player = Dinosaur()    
     cloud = Cloud()
     game_speed = 20
     x_pos_bg = 0
@@ -338,14 +378,14 @@ def main():
     points = 0
     obstacles = []
     font = pygame.font.Font('freesansbold.ttf', 20)
-
+    
     obstacle_distance = 0
     obstacle_width = 0
     obstacle_height = 0
-    is_flying = 0
+    is_flying = -1
     
-    model, train_data = main2(train_data, q_activities, latest_score)
-    #print(model)
+    ##############
+        
     while run:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -353,51 +393,34 @@ def main():
 
         screen.fill((255,255,255))
         userInput = pygame.key.get_pressed()
-        player.draw(screen)
         
-
+        
+        
         ####
-        inputs = np.array([[obstacle_distance, obstacle_height, obstacle_width, game_speed, is_flying]]) 
-        normalized_inputs = np.array([(obstacle_distance - 290)/(200-290),
-                         (obstacle_height - 65)/(97-65),
-                         (obstacle_width-40)/(105-40),
-                         (game_speed*0.01),
-                         (is_flying)])
-        
-        train_data = np.vstack((train_data, normalized_inputs))
-        #print(train_data)
-        #input(str(model.weights_output)+"STARE")
-        #print()
+        inputs = np.array([[obstacle_distance, obstacle_height, obstacle_width, game_speed, is_flying]])    
 
-        model.forward(normalized_inputs)
-        player.update(userInput, filter_actions(model.output))
+        player.draw(screen)
+        gen1_forward, rr = full_forward_propagation(np.reshape(inputs, (5,1)), gen1, NN_ARCHITECTURE)
+        player.update(userInput, filter_actions(gen1_forward))
 
-        
-        
         ####
 
         if len(obstacles) == 0:
             if random.randint(0,2) == 0:
                 obstacles.append(SmallCactus(smallCactus))
-                is_flying = 0
+                is_flying = -1
             elif random.randint(0,2) == 1:
                 obstacles.append(LargeCactus(largeCactus))
-                is_flying = 0
+                is_flying = -1
             elif random.randint(0,2) == 2:
                 obstacles.append(Bird(bird))
                 is_flying = 1
-
-        
 
         for obstacle in obstacles:
             obstacle.draw(screen)
             obstacle.update()
             if player.dino_rect.colliderect(obstacle.rect):
-                pygame.time.delay(0)
-                death_count += 1
-                latest_score = points
-                menu(death_count)
-                
+                menu()
 
         try:
             obstacle_distance = obstacles[-1].rect.x
@@ -443,26 +466,27 @@ def main():
         clock.tick(30)
         pygame.display.update()
 
-        def menu(death_count):
+        def menu():
             global points
             run = True
+            
             while run:
                 screen.fill((255,255,255))
                 font = pygame.font.Font('freesansbold.ttf', 20)
 
-                if death_count == 0:
-                    text = font.render("Press any key to start", True, (0,0,0))
-                elif death_count > 0:
-                    latest_score = points
-                    text = font.render("Press any key to restart", True, (0,0,0))
-                    score = font.render("Your score: " +str(points), True, (0,0,0))
-                    scoreRect = score.get_rect()
-                    scoreRect.center = (screenW //2, screenH // 2 + 50)
-                    screen.blit(score, scoreRect)
+                text = font.render("Press any key to start", True, (0,0,0))
+                
+                
+                text = font.render("Press any key to restart", True, (0,0,0))
+                score = font.render("Your score: " +str(points), True, (0,0,0))
+                scoreRect = score.get_rect()
+                scoreRect.center = (screenW //2, screenH // 2 + 50)
+                screen.blit(score, scoreRect)
                 textRect = text.get_rect()
                 textRect.center = (screenW // 2, screenH // 2)
                 screen.blit(text, textRect)
-                pygame.display.update()
+                pygame.display.update()   
+
                 main()
                 for event in pygame.event.get():
                     if event.type ==pygame.QUIT:

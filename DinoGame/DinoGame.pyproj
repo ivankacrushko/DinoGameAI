@@ -51,6 +51,7 @@
     <Content Include="Assets\Other\GameOver.png" />
     <Content Include="Assets\Other\Reset.png" />
     <Content Include="Assets\Other\Track.png" />
+    <Content Include="train_data.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

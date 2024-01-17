@@ -3,7 +3,6 @@ import pygame
 import os
 import random
 import numpy as np
-###
 from keyboard import press, release
 import pyautogui
 import time
@@ -405,7 +404,7 @@ def main():
         textRect.center = (1000,60)
         screen.blit(text1, textRect)
         
-        text2 = font.render("Smierci: " + str(death_count), True, (0,0,0))
+        text2 = font.render("Podejscie: " + str(death_count+1), True, (0,0,0))
         textRect = text2.get_rect()
         textRect.center = (1000,80)
         screen.blit(text2, textRect)

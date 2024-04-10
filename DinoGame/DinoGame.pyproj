@@ -21,8 +21,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ann.py" />
     <Compile Include="DinoGame.py" />
-    <Compile Include="moduł1.py" />
+    <Compile Include="game.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\" />

@@ -3,7 +3,14 @@ import pygame
 import random
 import numpy as np
 
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
+from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QImage, QPixmap
+
 import ann, game
+from gui import Toolbar
+
+
 
 
 
@@ -12,6 +19,12 @@ pygame.init()
 screenH = 600
 screenW = 1100
 screen = pygame.display.set_mode((screenW, screenH))
+
+toolbar = Toolbar(screen, screenW)
+toolbar.add_button("New")
+toolbar.add_button("Open")
+toolbar.add_button("Options")
+toolbar.add_button("Quit")
 
 
 highest_score = 0
@@ -53,11 +66,16 @@ def detect_action(dino):
 gen1 = ann.Model()
 gen1.train(np.transpose(train_X), np.transpose(train_Y), ann.NN_ARCHITECTURE, 1000, 0.0009)
 
+
+
 def main():
     global model, game_speed, x_pos_bg, y_pos_bg,highest_score, points,obstacles, obstacle_distance, obstacle_width, obstacle_height, death_count
     run = True
     clock = pygame.time.Clock()
-    player = game.Dinosaur()    
+    player = game.Dinosaur()   
+
+    
+
     cloud = game.Cloud(screenW)
     game_speed = 20
     x_pos_bg = 0
@@ -109,9 +127,12 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+            toolbar.handle_event(event)
 
         screen.fill((255,255,255))
         userInput = pygame.key.get_pressed()
+        toolbar.draw()
+
         
         ####
         inputs = np.array([[obstacle_distance, obstacle_height, obstacle_width, game_speed, is_flying]])    
@@ -138,7 +159,7 @@ def main():
             obstacle.update(game_speed, obstacles)
             if player.dino_rect.colliderect(obstacle.rect):
                 death_count += 1
-                menu(death_count)
+                menu(death_count, toolbar)
 
         try:
             obstacle_distance = obstacles[-1].rect.x
@@ -157,7 +178,7 @@ def main():
         clock.tick(30)
         pygame.display.update()
 
-def menu(death_count):
+def menu(death_count, toolbar):
     global points
     run = True
             
@@ -179,14 +200,17 @@ def menu(death_count):
         textRect = text.get_rect()
         textRect.center = (screenW // 2, screenH // 2)
         screen.blit(text, textRect)
+        toolbar.draw()
         pygame.display.update()
-        main()
+        
         for event in pygame.event.get():
             if event.type ==pygame.QUIT:
                 run = False
+                pygame.quit()
+            toolbar.handle_event(event)
             if event.type == pygame.KEYDOWN:
                 main()
                     
 
     
-menu(death_count)
+menu(death_count, toolbar)

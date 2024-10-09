@@ -2,6 +2,11 @@ import pygame
 import random
 import os
 
+import gui
+    # game_speed = saved_settings['Game Speed']
+    # jump_height = saved_settings['Jump Height']
+    # obstacle_count = saved_settings['Obstacle Count']
+saved_settings = gui.load_settings_from_file("settings.txt")    
 
 running = [pygame.image.load(os.path.join("Assets/Dino", "DinoRun1.png")),
            pygame.image.load(os.path.join("Assets/Dino", "DinoRun2.png"))]
@@ -151,3 +156,4 @@ class Bird(Obstacle):
             self.index = 0
         screen.blit(self.image[self.index//5], self.rect)
         self.index += 1
+        

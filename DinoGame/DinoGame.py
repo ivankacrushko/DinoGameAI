@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QImage, QPixmap
 
-import ann, game
+import ann, game, gui
 from gui import Toolbar
 
 
@@ -25,6 +25,8 @@ toolbar.add_button("New")
 toolbar.add_button("Open")
 toolbar.add_button("Options")
 toolbar.add_button("Quit")
+toolbar.add_button("Settings")
+
 
 
 highest_score = 0
@@ -35,6 +37,8 @@ loaded_data_str = np.loadtxt(file_path, dtype=str)
 loaded_data = loaded_data_str.astype(int)
 train_X = loaded_data[:, :5]  
 train_Y = loaded_data[:, 5:]  
+
+
 
 norm_train_X = []
 for row in train_X:
@@ -70,14 +74,16 @@ gen1.train(np.transpose(train_X), np.transpose(train_Y), ann.NN_ARCHITECTURE, 10
 
 def main():
     global model, game_speed, x_pos_bg, y_pos_bg,highest_score, points,obstacles, obstacle_distance, obstacle_width, obstacle_height, death_count
+    saved_settings = gui.load_settings_from_file("settings.txt")   
     run = True
     clock = pygame.time.Clock()
     player = game.Dinosaur()   
-
     
+    game_speed = float(saved_settings['Game Speed'])
+    player.JUMP_VEL = float(saved_settings['Jump Height'])
 
     cloud = game.Cloud(screenW)
-    game_speed = 20
+    #game_speed = int(saved_settings['Game Speed'])
     x_pos_bg = 0
     y_pos_bg = 380
     points = 0
@@ -144,13 +150,13 @@ def main():
         ####
 
         if len(obstacles) == 0:
-            if random.randint(0,2) == 0:
+            if random.randint(0,2) == 0 and saved_settings['Spawn Short Obstacles'] == "True":
                 obstacles.append(game.SmallCactus(game.smallCactus, screenW))
                 is_flying = -1
-            elif random.randint(0,2) == 1:
+            elif random.randint(0,2) == 1 and saved_settings['Spawn High Obstacles'] == "True":
                 obstacles.append(game.LargeCactus(game.largeCactus, screenW))
                 is_flying = -1
-            elif random.randint(0,2) == 2:
+            elif random.randint(0,2) == 2 and saved_settings['Spawn Bats'] == "True":
                 obstacles.append(game.Bird(game.bird, screenW))
                 is_flying = 1
 

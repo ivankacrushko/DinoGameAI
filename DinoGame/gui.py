@@ -55,6 +55,8 @@ class Toolbar:
                         open_options_window()
                     if button["text"] == "Quit":
                         quit()
+                    if button["text"] == "Settings":
+                        save_settings(game_speed_field, jump_height, duck_pos, obstacle_count, obstacle_bat, obstacle_high, obstacle_short)
 
 def open_options_window():
     app = QtWidgets.QApplication(sys.argv)
@@ -66,7 +68,7 @@ def open_options_window():
 
     #game speed
     label = QtWidgets.QLabel("Game Speed")
-    game_speed_field = QtWidgets.QSpinBox(options_window)
+    game_speed_field = QtWidgets.QDoubleSpinBox(options_window)
     game_speed_field.setMinimum(10)
     game_speed_field.setMaximum(100)
     game_speed_field.setSingleStep(1)
@@ -76,7 +78,7 @@ def open_options_window():
 
     #jump height
     label = QtWidgets.QLabel("Jump height")
-    jump_height = QtWidgets.QSpinBox(options_window)
+    jump_height = QtWidgets.QDoubleSpinBox(options_window)
     jump_height.setMinimum(5)
     jump_height.setMaximum(15)
     layout.addWidget(label)
@@ -85,25 +87,25 @@ def open_options_window():
 
 
     #duck pos
-    label = QtWidgets.QLabel("Duck positions")
-    duck_pos = QtWidgets.QSpinBox(options_window)
-    duck_pos.setMinimum(50)
-    duck_pos.setMaximum(500)
-    layout.addWidget(label)
-    layout.addWidget(duck_pos)
+    # label = QtWidgets.QLabel("Duck positions")
+    # duck_pos = QtWidgets.QSpinBox(options_window)
+    # duck_pos.setMinimum(50)
+    # duck_pos.setMaximum(500)
+    # layout.addWidget(label)
+    # layout.addWidget(duck_pos)
 
 
-    #obstacle count
-    label = QtWidgets.QLabel('Obstacle count')
-    obstacle_count = QtWidgets.QSlider(Qt.Horizontal, options_window)
-    obstacle_count.setMinimum(0)
-    obstacle_count.setMaximum(20)
-    obstacle_count.setSingleStep(1)
-    obstacle_count.valueChanged.connect(slider_logic)
-    obs_value = QtWidgets.QLabel('0')
-    layout.addWidget(label)
-    layout.addWidget(obstacle_count)
-    layout.addWidget(obs_value)
+    # #obstacle count
+    # label = QtWidgets.QLabel('Obstacle count')
+    # obstacle_count = QtWidgets.QSlider(Qt.Horizontal, options_window)
+    # obstacle_count.setMinimum(0)
+    # obstacle_count.setMaximum(20)
+    # obstacle_count.setSingleStep(1)
+    # obstacle_count.valueChanged.connect(slider_logic)
+    # obs_value = QtWidgets.QLabel('0')
+    # layout.addWidget(label)
+    # layout.addWidget(obstacle_count)
+    # layout.addWidget(obs_value)
 
     #bat check
     label = QtWidgets.QLabel("Spawn bats")
@@ -126,13 +128,44 @@ def open_options_window():
     layout.addWidget(label)
     layout.addWidget(obstacle_short)
 
-    
+    # Przycisk Zapisz
+    save_button = QtWidgets.QPushButton("Apply", options_window)
+    save_button.clicked.connect(lambda: save_settings_to_file('settings.txt',game_speed_field, jump_height, obstacle_bat, obstacle_high, obstacle_short))
+    layout.addWidget(save_button)
     
 
     options_window.setLayout(layout)
     options_window.show()
     app.exec_()
 
+def save_settings_to_file(filename, game_speed_field, jump_height, obstacle_bat, obstacle_high, obstacle_short):
+    game_speed = game_speed_field.value()
+    jump_height_value = jump_height.value()
+    spawn_bats = obstacle_bat.isChecked()
+    spawn_high_obs = obstacle_high.isChecked()
+    spawn_short_obs = obstacle_short.isChecked()
+    
+    with open(filename, 'w') as file:
+        file.write(f"Game Speed: {game_speed}\n")
+        file.write(f"Jump Height: {jump_height_value}\n")
+        file.write(f"Spawn Bats: {spawn_bats}\n")
+        file.write(f"Spawn High Obstacles: {spawn_high_obs}\n")
+        file.write(f"Spawn Short Obstacles: {spawn_short_obs}\n")
+    print(f"Settings saved to {filename}")
+    
+def load_settings_from_file(filename):
+    settings = {}
+    try:
+        with open(filename, 'r') as file:
+            for line in file:
+                key, value = line.strip().split(': ')
+                settings[key] = value
+        print(f"Settings loaded from {filename}")
+    except FileNotFoundError:
+        print(f"No settings file found: {filename}")
+    
+    return settings
+    
 def quit():
     pygame.quit()
 

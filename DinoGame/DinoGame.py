@@ -7,12 +7,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QImage, QPixmap
 
-import ann, game, gui
+import ann, game, gui, loading
 from gui import Toolbar
-
-
-
-
 
 pygame.init()
 
@@ -24,27 +20,36 @@ toolbar = Toolbar(screen, screenW)
 toolbar.add_button("New")
 toolbar.add_button("Open")
 toolbar.add_button("Options")
+toolbar.add_button("Reset gen")
 toolbar.add_button("Quit")
-toolbar.add_button("Settings")
 
 
 
 highest_score = 0
 death_count = 0
 
-file_path = 'train_data.txt'
-loaded_data_str = np.loadtxt(file_path, dtype=str)
-loaded_data = loaded_data_str.astype(int)
-train_X = loaded_data[:, :5]  
-train_Y = loaded_data[:, 5:]  
 
 
+def neuron_training():
+    file_path = 'train_data.txt'
+    loaded_data_str = np.loadtxt(file_path, dtype=str)
+    loaded_data = loaded_data_str.astype(int)
+    train_X = loaded_data[:, :5]  
+    train_Y = loaded_data[:, 5:]
 
-norm_train_X = []
-for row in train_X:
-    X_norm = (row-row.mean())/row.std()   
-    norm_train_X.append(X_norm)    
-norm_train_X = np.array(norm_train_X)
+    NN_ARCHITECTURE = loading.load_architecture_from_file('layers_config.txt')
+    NN_ARCHITECTURE = loading.format_nn_architecture(NN_ARCHITECTURE)
+
+    norm_train_X = []
+    for row in train_X:
+        X_norm = (row-row.mean())/row.std()   
+        norm_train_X.append(X_norm)    
+    norm_train_X = np.array(norm_train_X)
+    
+    gen = ann.Model()
+    gen.train(np.transpose(train_X), np.transpose(train_Y), NN_ARCHITECTURE, 1000, 0.0009)
+    
+    return gen
 
 def filter_actions(model_output):
     if np.argmax(model_output) == 2:
@@ -67,9 +72,8 @@ def detect_action(dino):
     else:
         print("ERRROR") 
 
-gen1 = ann.Model()
-gen1.train(np.transpose(train_X), np.transpose(train_Y), ann.NN_ARCHITECTURE, 1000, 0.0009)
 
+gen1 = neuron_training()
 
 
 def main():
@@ -78,6 +82,8 @@ def main():
     run = True
     clock = pygame.time.Clock()
     player = game.Dinosaur()   
+    
+    #wczytywanie ustawien
     
     game_speed = float(saved_settings['Game Speed'])
     player.JUMP_VEL = float(saved_settings['Jump Height'])
@@ -213,10 +219,11 @@ def menu(death_count, toolbar):
             if event.type ==pygame.QUIT:
                 run = False
                 pygame.quit()
-            toolbar.handle_event(event)
+            if toolbar.handle_event(event) == True:
+                gen1 = neuron_training()
             if event.type == pygame.KEYDOWN:
                 main()
                     
 
-    
+
 menu(death_count, toolbar)

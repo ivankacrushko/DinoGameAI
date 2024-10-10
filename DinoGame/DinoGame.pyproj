@@ -24,6 +24,7 @@
     <Compile Include="ann.py" />
     <Compile Include="DinoGame.py" />
     <Compile Include="game.py" />
+    <Compile Include="loading.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\" />

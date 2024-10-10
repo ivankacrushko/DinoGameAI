@@ -1,4 +1,4 @@
-Game Speed: 10.0
+Game Speed: 20.0
 Jump Height: 8.5
 Spawn Bats: True
 Spawn High Obstacles: True

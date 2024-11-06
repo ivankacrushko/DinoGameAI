@@ -7,6 +7,8 @@ from PyQt5.QtCore import Qt
 import pygame
 import sys
 
+import loading
+
 pygame.font.init()  # Inicjalizacja modułu czcionki
 app = QtWidgets.QApplication(sys.argv)
 
@@ -79,7 +81,6 @@ class Toolbar:
             for button in self.buttons:
                 button_rect = pygame.Rect(button["pos"], self.button_size)
                 if button_rect.collidepoint(mouse_pos):
-                    print(f'Button {button["text"]} clicked')
                     if button["text"] == "Options":
                         self.options_window = OptionsWindow()
                         self.options_window.show()
@@ -186,7 +187,6 @@ class NeuralNetworkConfigWindow(QtWidgets.QWidget):
             for layer in layers:
                 file.write(f"input_dim: {layer['input_dim']}, output_dim: {layer['output_dim']}, activation: {layer['activation']}\n")
 
-        print("Configuration saved to layers_config.txt")
         
  
 class InputLayerWidget(QtWidgets.QWidget):
@@ -275,9 +275,65 @@ class LayerWidget(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
+class TrainingConfigWindow(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.learning_rate_value, self.epochs_value = loading.load_training_settings("neuron_training_config.txt")        
+
+        self.setWindowTitle('Training Configuration')
+        self.setGeometry(100, 100, 200, 100)
+
+        self.layout = QtWidgets.QVBoxLayout()
+
+        learning_rate_layout = QtWidgets.QHBoxLayout()
+        learning_rate_layout.setSpacing(5)
+        self.learning_rate = QtWidgets.QDoubleSpinBox(self)
+        self.learning_rate.setMinimum(0.0001)
+        self.learning_rate.setMaximum(1)
+        self.learning_rate.setSingleStep(0.0001)
+        self.learning_rate.setDecimals(4)
+        self.learning_rate.setValue(self.learning_rate_value)
+        learning_rate_layout.addWidget(QtWidgets.QLabel("Learning rate"))
+        learning_rate_layout.addWidget(self.learning_rate)
+        self.layout.addLayout(learning_rate_layout)
+        
+        
+        epoch_layout = QtWidgets.QHBoxLayout()
+        epoch_layout.setSpacing(5)
+        self.epochs = QtWidgets.QDoubleSpinBox(self)
+        self.epochs.setMinimum(1)
+        self.epochs.setMaximum(30000)
+        self.epochs.setSingleStep(100)
+        self.epochs.setDecimals(0)
+        self.epochs.setValue(self.epochs_value)
+        epoch_layout.addWidget(QtWidgets.QLabel("Epochs"))
+        epoch_layout.addWidget(self.epochs)
+        self.layout.addLayout(epoch_layout)
+
+        # Przycisk zapisu
+        self.save_button = QtWidgets.QPushButton("Save Configuration")
+        self.save_button.clicked.connect(self.save_configuration)
+        self.layout.addWidget(self.save_button)
+
+        self.setLayout(self.layout)
+
+    def save_configuration(self):
+        learning_rate = self.learning_rate.value()
+        epochs = self.epochs.value()
+        with open('neuron_training_config.txt', 'w') as file:
+            
+            file.write(f"learning_rate: {learning_rate}, epochs: {epochs}")
+
+       
+        
+        
+
 class OptionsWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
+        
+        game_speed, jump_height, spawn_bats, spawn_high, spawn_short = loading.load_game_settings("game_settings.txt")
 
         self.setWindowTitle('Options')
         self.setGeometry(100, 100, 600, 300)
@@ -289,6 +345,7 @@ class OptionsWindow(QtWidgets.QWidget):
         self.game_speed_field.setMinimum(10)
         self.game_speed_field.setMaximum(100)
         self.game_speed_field.setSingleStep(1)
+        self.game_speed_field.setValue(game_speed)
         layout.addWidget(QtWidgets.QLabel("Game Speed"))
         layout.addWidget(self.game_speed_field)
 
@@ -296,31 +353,59 @@ class OptionsWindow(QtWidgets.QWidget):
         self.jump_height = QtWidgets.QDoubleSpinBox(self)
         self.jump_height.setMinimum(5)
         self.jump_height.setMaximum(15)
+        self.jump_height.setSingleStep(0.1)
+        self.jump_height.setValue(jump_height)
         layout.addWidget(QtWidgets.QLabel("Jump Height"))
         layout.addWidget(self.jump_height)
 
         # Bat check
+        bat_checkbox_layout = QtWidgets.QHBoxLayout()        
+        bat_checkbox_layout.setSpacing(5)
         self.obstacle_bat = QtWidgets.QCheckBox(self)
-        self.obstacle_bat.setCheckState(Qt.Checked)
-        layout.addWidget(QtWidgets.QLabel("Spawn Bats"))
-        layout.addWidget(self.obstacle_bat)
+        if spawn_bats == True:
+            self.obstacle_bat.setChecked(True)
+        else:
+            self.obstacle_bat.setChecked(False)
+        bat_checkbox_layout.addWidget(self.obstacle_bat)
+        bat_checkbox_layout.addWidget(QtWidgets.QLabel("Spawn bats"))
+        bat_checkbox_layout.addStretch(1)
+        layout.addLayout(bat_checkbox_layout)
 
         # High obstacles check
+        high_obs_checkbox_layout = QtWidgets.QHBoxLayout()        
+        high_obs_checkbox_layout.setSpacing(5)
         self.obstacle_high = QtWidgets.QCheckBox(self)
-        self.obstacle_high.setCheckState(Qt.Checked)
-        layout.addWidget(QtWidgets.QLabel("Spawn High Obstacles"))
-        layout.addWidget(self.obstacle_high)
+        if spawn_high == True:
+            self.obstacle_high.setChecked(True)
+        else:
+            self.obstacle_high.setChecked(False)
+        high_obs_checkbox_layout.addWidget(self.obstacle_high)
+        high_obs_checkbox_layout.addWidget(QtWidgets.QLabel("Spawn high obstacles"))
+        high_obs_checkbox_layout.addStretch(1)
+        layout.addLayout(high_obs_checkbox_layout)
 
         # Short obstacles check
+        short_obs_checkbox_layout = QtWidgets.QHBoxLayout()        
+        short_obs_checkbox_layout.setSpacing(5)
         self.obstacle_short = QtWidgets.QCheckBox(self)
-        self.obstacle_short.setCheckState(Qt.Checked)
-        layout.addWidget(QtWidgets.QLabel("Spawn Short Obstacles"))
-        layout.addWidget(self.obstacle_short)
+        if spawn_short == True:
+            self.obstacle_short.setChecked(True)
+        else:
+            self.obstacle_short.setChecked(False)
+        short_obs_checkbox_layout.addWidget(self.obstacle_short)
+        short_obs_checkbox_layout.addWidget(QtWidgets.QLabel("Spawn short obstacles"))
+        short_obs_checkbox_layout.addStretch(1)
+        layout.addLayout(short_obs_checkbox_layout)
 
         # NN Settings Button
-        self.nn_settings_button = QtWidgets.QPushButton("NN Settings", self)
-        self.nn_settings_button.clicked.connect(self.open_nn_settings_window)  # Połączenie zdarzenia
+        self.nn_settings_button = QtWidgets.QPushButton("Neural network settings", self)
+        self.nn_settings_button.clicked.connect(self.open_nn_settings_window)
         layout.addWidget(self.nn_settings_button)
+        
+        #Train Settings Button
+        self.train_settings_button = QtWidgets.QPushButton("Neuron training settings", self)
+        self.train_settings_button.clicked.connect(self.open_train_settings_window) 
+        layout.addWidget(self.train_settings_button)
 
         # Save Button
         save_button = QtWidgets.QPushButton("Apply", self)
@@ -331,11 +416,17 @@ class OptionsWindow(QtWidgets.QWidget):
         self.setLayout(layout)
         
         self.nn_settings_window = None
+        self.train_settings_window = None
 
     def open_nn_settings_window(self):
         if self.nn_settings_window is None:
-            self.nn_settings_window = NeuralNetworkConfigWindow()  # Tworzenie instancji okna NN
+            self.nn_settings_window = NeuralNetworkConfigWindow()
         self.nn_settings_window.show()
+
+    def open_train_settings_window(self):
+        if self.train_settings_window is None:
+            self.train_settings_window = TrainingConfigWindow()
+        self.train_settings_window.show()
 
     def save_settings_to_file(self):
         # Odczytanie wartości z kontrolek
@@ -346,27 +437,26 @@ class OptionsWindow(QtWidgets.QWidget):
         spawn_short_obs = self.obstacle_short.isChecked()
 
         # Zapisz do pliku
-        with open('settings.txt', 'w') as file:
-            file.write(f"Game Speed: {game_speed}\n")
-            file.write(f"Jump Height: {jump_height_value}\n")
-            file.write(f"Spawn Bats: {spawn_bats}\n")
-            file.write(f"Spawn High Obstacles: {spawn_high_obs}\n")
-            file.write(f"Spawn Short Obstacles: {spawn_short_obs}\n")
-        print(f"Settings saved to settings.txt")
-
+        with open('game_settings.txt', 'w') as file:
+            file.write(f"game_speed: {game_speed}, ")
+            file.write(f"jump_height: {jump_height_value}, ")
+            file.write(f"spawn_bats: {spawn_bats}, ")
+            file.write(f"spawn_high: {spawn_high_obs}, ")
+            file.write(f"spawn_short: {spawn_short_obs}")
+        
     
-def load_settings_from_file(filename):
-    settings = {}
-    try:
-        with open(filename, 'r') as file:
-            for line in file:
-                key, value = line.strip().split(': ')
-                settings[key] = value
-        print(f"Settings loaded from {filename}")
-    except FileNotFoundError:
-        print(f"No settings file found: {filename}")
+# def load_settings_from_file(filename):
+#     settings = {}
+#     try:
+#         with open(filename, 'r') as file:
+#             for line in file:
+#                 key, value = line.strip().split(': ')
+#                 settings[key] = value
+#         print(f"Settings loaded from {filename}")
+#     except FileNotFoundError:
+#         print(f"No settings file found: {filename}")
     
-    return settings
+#     return settings
     
 def quit():
     pygame.quit()

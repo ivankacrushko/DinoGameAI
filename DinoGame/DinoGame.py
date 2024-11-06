@@ -37,9 +37,11 @@ def neuron_training():
     train_X = loaded_data[:, :5]  
     train_Y = loaded_data[:, 5:]
 
+    learning_rate, epochs = loading.load_training_settings('neuron_training_config.txt')
+    
     NN_ARCHITECTURE = loading.load_architecture_from_file('layers_config.txt')
     NN_ARCHITECTURE = loading.format_nn_architecture(NN_ARCHITECTURE)
-
+    loading.load_game_settings("game_settings.txt")
     norm_train_X = []
     for row in train_X:
         X_norm = (row-row.mean())/row.std()   
@@ -47,7 +49,8 @@ def neuron_training():
     norm_train_X = np.array(norm_train_X)
     
     gen = ann.Model()
-    gen.train(np.transpose(train_X), np.transpose(train_Y), NN_ARCHITECTURE, 1000, 0.0009)
+    gen.train(np.transpose(train_X), np.transpose(train_Y), NN_ARCHITECTURE, epochs, learning_rate)
+    #(1000\0.0009)
     
     return gen
 
@@ -78,18 +81,16 @@ gen1 = neuron_training()
 
 def main():
     global model, game_speed, x_pos_bg, y_pos_bg,highest_score, points,obstacles, obstacle_distance, obstacle_width, obstacle_height, death_count
-    saved_settings = gui.load_settings_from_file("settings.txt")   
+    game_speed, jump_height, spawn_bats, spawn_high, spawn_short = loading.load_game_settings("game_settings.txt")
     run = True
     clock = pygame.time.Clock()
     player = game.Dinosaur()   
     
     #wczytywanie ustawien
     
-    game_speed = float(saved_settings['Game Speed'])
-    player.JUMP_VEL = float(saved_settings['Jump Height'])
+    player.JUMP_VEL = jump_height
 
     cloud = game.Cloud(screenW)
-    #game_speed = int(saved_settings['Game Speed'])
     x_pos_bg = 0
     y_pos_bg = 380
     points = 0
@@ -156,13 +157,13 @@ def main():
         ####
 
         if len(obstacles) == 0:
-            if random.randint(0,2) == 0 and saved_settings['Spawn Short Obstacles'] == "True":
+            if random.randint(0,2) == 0 and spawn_short == True:
                 obstacles.append(game.SmallCactus(game.smallCactus, screenW))
                 is_flying = -1
-            elif random.randint(0,2) == 1 and saved_settings['Spawn High Obstacles'] == "True":
+            elif random.randint(0,2) == 1 and spawn_high == True:
                 obstacles.append(game.LargeCactus(game.largeCactus, screenW))
                 is_flying = -1
-            elif random.randint(0,2) == 2 and saved_settings['Spawn Bats'] == "True":
+            elif random.randint(0,2) == 2 and spawn_bats == True:
                 obstacles.append(game.Bird(game.bird, screenW))
                 is_flying = 1
 

@@ -24,6 +24,7 @@
     <Compile Include="ann.py" />
     <Compile Include="DinoGame.py" />
     <Compile Include="game.py" />
+    <Compile Include="gui.py" />
     <Compile Include="loading.py" />
   </ItemGroup>
   <ItemGroup>
@@ -53,6 +54,9 @@
     <Content Include="Assets\Other\GameOver.png" />
     <Content Include="Assets\Other\Reset.png" />
     <Content Include="Assets\Other\Track.png" />
+    <Content Include="game_settings.txt" />
+    <Content Include="layers_config.txt" />
+    <Content Include="neuron_training_config.txt" />
     <Content Include="train_data.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />

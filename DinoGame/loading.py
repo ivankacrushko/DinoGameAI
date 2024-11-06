@@ -1,3 +1,6 @@
+
+
+
 def load_architecture_from_file(filename):
     architecture = []
 
@@ -24,3 +27,43 @@ def format_nn_architecture(layers):
             "activation": layer["activation"]
         })
     return nn_architecture
+
+def load_training_settings(filename):
+   with open(filename, 'r') as file:
+        lines = file.readlines()
+            
+        for line in lines:
+            params = line.strip().split(',')
+            settings = {}
+            for param in params:
+                key, value = param.split(': ')
+                settings[key.strip()] = value.strip()
+                
+        return format_training_settings(settings)
+
+def format_training_settings(settings):
+    learning_rate = float(settings["learning_rate"])
+    epochs = int(float(settings["epochs"]))
+    return learning_rate, epochs
+
+def load_game_settings(filename):
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+            
+        for line in lines:
+            params = line.strip().split(',')
+            settings = {}
+            for param in params:
+                key, value = param.split(': ')
+                settings[key.strip()] = value.strip()
+                
+        return format_game_settings(settings)
+        
+def format_game_settings(settings):
+    game_speed = float(settings["game_speed"])
+    jump_height = float(settings['jump_height'])
+    spawn_bats = eval(settings['spawn_bats'])
+    spawn_high = eval(settings['spawn_high'])
+    spawn_short = eval(settings['spawn_short'])
+        
+    return game_speed, jump_height, spawn_bats, spawn_high, spawn_short

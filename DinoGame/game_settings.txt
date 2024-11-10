@@ -1,1 +1,1 @@
-game_speed: 20.0, jump_height: 8.499999999999998, spawn_bats: True, spawn_high: True, spawn_short: True
+game_speed: 20.0, jump_height: 8.5, spawn_bats: True, spawn_high: True, spawn_short: True

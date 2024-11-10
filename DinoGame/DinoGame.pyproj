@@ -26,6 +26,9 @@
     <Compile Include="game.py" />
     <Compile Include="gui.py" />
     <Compile Include="loading.py" />
+    <Compile Include="ga.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\" />

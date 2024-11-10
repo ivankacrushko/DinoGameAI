@@ -44,7 +44,8 @@ def load_training_settings(filename):
 def format_training_settings(settings):
     learning_rate = float(settings["learning_rate"])
     epochs = int(float(settings["epochs"]))
-    return learning_rate, epochs
+    method = settings["method"]
+    return learning_rate, epochs, method
 
 def load_game_settings(filename):
     with open(filename, 'r') as file:

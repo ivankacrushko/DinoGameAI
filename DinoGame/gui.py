@@ -150,6 +150,8 @@ class NeuralNetworkConfigWindow(QtWidgets.QWidget):
         self.layout.addWidget(self.save_button)
 
         self.setLayout(self.layout)
+
+        #self.load_configuration()
         
 
     def add_layer(self):
@@ -186,6 +188,39 @@ class NeuralNetworkConfigWindow(QtWidgets.QWidget):
         with open('layers_config.txt', 'w') as file:
             for layer in layers:
                 file.write(f"input_dim: {layer['input_dim']}, output_dim: {layer['output_dim']}, activation: {layer['activation']}\n")
+                
+    def load_configuration(self):
+    # Clear existing widgets in the container
+        while self.layers_container.count() > 0:
+            item = self.layers_container.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
+        try:
+            with open('layers_config.txt', 'r') as file:
+                lines = file.readlines()
+                for line in lines:
+                    # Parse each line to extract layer properties
+                    params = line.strip().split(',')
+                    layer_params = {}
+                    for param in params:
+                        key, value = param.split(': ')
+                        layer_params[key.strip()] = value.strip()
+
+                    # Create a new LayerWidget and set its properties
+                    layer_widget = LayerWidget()
+                    layer_widget.input_neurons.setValue(int(layer_params['input_dim']))
+                    layer_widget.output_neurons.setValue(int(layer_params['output_dim']))
+                    layer_widget.activation_function.setCurrentText(layer_params['activation'])
+                
+                    # Add the configured layer to the container
+                    self.layers_container.addWidget(layer_widget)
+                
+        except FileNotFoundError:
+            print("Configuration file not found.")
+
+
 
         
  
@@ -279,7 +314,7 @@ class TrainingConfigWindow(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.learning_rate_value, self.epochs_value = loading.load_training_settings("neuron_training_config.txt")        
+        self.learning_rate_value, self.epochs_value, method = loading.load_training_settings("neuron_training_config.txt")        
 
         self.setWindowTitle('Training Configuration')
         self.setGeometry(100, 100, 200, 100)
@@ -311,6 +346,18 @@ class TrainingConfigWindow(QtWidgets.QWidget):
         epoch_layout.addWidget(self.epochs)
         self.layout.addLayout(epoch_layout)
 
+        method_layout = QtWidgets.QHBoxLayout()
+        method_layout.setSpacing(5)
+        self.method = QtWidgets.QComboBox()
+        self.method.addItem("Backpropagation")
+        self.method.addItem("Genetic")
+        self.method.setCurrentText(method)
+        method_layout.addWidget(QtWidgets.QLabel("Training method:"))
+        method_layout.addWidget(self.method)
+        self.layout.addLayout(method_layout)
+        
+        
+
         # Przycisk zapisu
         self.save_button = QtWidgets.QPushButton("Save Configuration")
         self.save_button.clicked.connect(self.save_configuration)
@@ -321,9 +368,10 @@ class TrainingConfigWindow(QtWidgets.QWidget):
     def save_configuration(self):
         learning_rate = self.learning_rate.value()
         epochs = self.epochs.value()
+        method = self.method.currentText()
         with open('neuron_training_config.txt', 'w') as file:
             
-            file.write(f"learning_rate: {learning_rate}, epochs: {epochs}")
+            file.write(f"learning_rate: {learning_rate}, epochs: {epochs}, method: {method}")
 
        
         

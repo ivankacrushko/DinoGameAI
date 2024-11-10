@@ -5,8 +5,10 @@ class Model():
     def __init__(self):
         self.params_values = 0
 
-    def init_layers(self, nn_architecture, seed = 99):
-        np.random.seed(seed)
+    def init_layers(self, nn_architecture, seed = 0):
+        if seed == 99:            
+            np.random.seed(seed)
+            
         number_of_layers = len(nn_architecture)
         params_values = {}
     
@@ -20,7 +22,7 @@ class Model():
                 layer_output_size, layer_input_size) * 0.1
             params_values['b' + str(layer_idx)] = np.random.randn(
                 layer_output_size, 1) * 0.1
-            self.params_values = params_values
+        self.params_values = params_values
         return params_values
 
     def sigmoid(self, Z):
@@ -135,8 +137,8 @@ class Model():
 
         return params_values;
 
-    def train(self, X, Y, nn_architecture, epochs, learning_rate, verbose=False, callback=None):
-        params_values = self.init_layers(nn_architecture, 99)
+    def train(self, X, Y, nn_architecture, epochs, learning_rate, seed, verbose=False, callback=None):
+        params_values = self.init_layers(nn_architecture, seed=seed)
         cost_history = []
         accuracy_history = []
     

@@ -314,64 +314,163 @@ class TrainingConfigWindow(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.learning_rate_value, self.epochs_value, method = loading.load_training_settings("neuron_training_config.txt")        
+        self.saved_settings = loading.load_training_settings("neuron_training_config.txt")        
 
         self.setWindowTitle('Training Configuration')
-        self.setGeometry(100, 100, 200, 100)
+        self.setGeometry(100, 100, 300, 200)
+
+        self.widgets_settings = {}
 
         self.layout = QtWidgets.QVBoxLayout()
+        main_layout = QtWidgets.QVBoxLayout(self)
+        method_layout = QtWidgets.QHBoxLayout()
+        self.settings_layout = QtWidgets.QVBoxLayout()
+        
+        self.method_select = QtWidgets.QComboBox()
+        self.method_select.addItem("Backpropagation")
+        self.method_select.addItem("Genetic")
+        self.method_select.currentIndexChanged.connect(self.update_settings)
+        self.method_select.setCurrentText(self.saved_settings['method'])
+        
+        method_layout.addWidget(QtWidgets.QLabel("Training method:"))
+        method_layout.addWidget(self.method_select)
+        main_layout.addLayout(method_layout)
 
         learning_rate_layout = QtWidgets.QHBoxLayout()
-        learning_rate_layout.setSpacing(5)
-        self.learning_rate = QtWidgets.QDoubleSpinBox(self)
-        self.learning_rate.setMinimum(0.0001)
-        self.learning_rate.setMaximum(1)
-        self.learning_rate.setSingleStep(0.0001)
-        self.learning_rate.setDecimals(4)
-        self.learning_rate.setValue(self.learning_rate_value)
-        learning_rate_layout.addWidget(QtWidgets.QLabel("Learning rate"))
-        learning_rate_layout.addWidget(self.learning_rate)
-        self.layout.addLayout(learning_rate_layout)
+        learning_rate_label = QtWidgets.QLabel("Learning rate:")
+        self.learning_rate_input = QtWidgets.QDoubleSpinBox(self)
+        self.learning_rate_input.setMinimum(0.0001)
+        self.learning_rate_input.setMaximum(1)
+        self.learning_rate_input.setSingleStep(0.0001)
+        self.learning_rate_input.setDecimals(4)
+        self.learning_rate_input.setValue(self.saved_settings['learning_rate'])
         
+        learning_rate_layout.addWidget(learning_rate_label)
+        learning_rate_layout.addWidget(self.learning_rate_input)
+        self.settings_layout.addLayout(learning_rate_layout)
         
-        epoch_layout = QtWidgets.QHBoxLayout()
-        epoch_layout.setSpacing(5)
-        self.epochs = QtWidgets.QDoubleSpinBox(self)
-        self.epochs.setMinimum(1)
-        self.epochs.setMaximum(30000)
-        self.epochs.setSingleStep(100)
-        self.epochs.setDecimals(0)
-        self.epochs.setValue(self.epochs_value)
-        epoch_layout.addWidget(QtWidgets.QLabel("Epochs"))
-        epoch_layout.addWidget(self.epochs)
-        self.layout.addLayout(epoch_layout)
-
-        method_layout = QtWidgets.QHBoxLayout()
-        method_layout.setSpacing(5)
-        self.method = QtWidgets.QComboBox()
-        self.method.addItem("Backpropagation")
-        self.method.addItem("Genetic")
-        self.method.setCurrentText(method)
-        method_layout.addWidget(QtWidgets.QLabel("Training method:"))
-        method_layout.addWidget(self.method)
-        self.layout.addLayout(method_layout)
+        main_layout.addLayout(self.settings_layout)
         
-        
-
-        # Przycisk zapisu
         self.save_button = QtWidgets.QPushButton("Save Configuration")
         self.save_button.clicked.connect(self.save_configuration)
-        self.layout.addWidget(self.save_button)
+        
+        main_layout.addStretch()
+        main_layout.addWidget(self.save_button)
 
-        self.setLayout(self.layout)
+        self.update_settings()
+
+    def add_backpropagation_settings(self):
+        # learning_rate_layout = QtWidgets.QHBoxLayout()
+        # learning_rate_label = QtWidgets.QLabel("Learning rate:")
+        # self.learning_rate_input = QtWidgets.QDoubleSpinBox(self)
+        # self.learning_rate_input.setMinimum(0.0001)
+        # self.learning_rate_input.setMaximum(1)
+        # self.learning_rate_input.setSingleStep(0.0001)
+        # self.learning_rate_input.setDecimals(4)
+        # self.learning_rate_input.setValue(self.saved_settings['learning_rate'])
+        
+        # learning_rate_layout.addWidget(learning_rate_label)
+        # learning_rate_layout.addWidget(self.learning_rate_input)
+        # self.settings_layout.addLayout(learning_rate_layout)
+        
+        epoch_layout = QtWidgets.QHBoxLayout()
+        epoch_label = QtWidgets.QLabel("Epochs:")
+        self.epochs_input = QtWidgets.QSpinBox(self)
+        self.epochs_input.setMinimum(1)
+        self.epochs_input.setMaximum(30000)
+        self.epochs_input.setSingleStep(100)
+        self.epochs_input.setValue(self.saved_settings['epochs'])
+        
+        epoch_layout.addWidget(epoch_label)
+        epoch_layout.addWidget(self.epochs_input)
+        self.settings_layout.addLayout(epoch_layout)
+        
+        self.widgets_settings['epoch_label'] = epoch_label
+        self.widgets_settings['epochs'] = self.epochs_input
+
+    def add_genetic_algorithm_settings(self):        
+        mutation_rate_layout = QtWidgets.QHBoxLayout()
+        mutation_rate_label = QtWidgets.QLabel("Mutation rate:")
+        self.mutation_rate_input = QtWidgets.QDoubleSpinBox(self)
+        self.mutation_rate_input.setMinimum(0.0001)
+        self.mutation_rate_input.setMaximum(1)
+        self.mutation_rate_input.setSingleStep(0.01)
+        self.mutation_rate_input.setDecimals(2)
+        self.mutation_rate_input.setValue(self.saved_settings['mutation_rate'])
+        
+        mutation_rate_layout.addWidget(mutation_rate_label)
+        mutation_rate_layout.addWidget(self.mutation_rate_input)
+        self.settings_layout.addLayout(mutation_rate_layout)
+        
+        population_layout = QtWidgets.QHBoxLayout()
+        population_label = QtWidgets.QLabel("Population size:")
+        self.population_input = QtWidgets.QSpinBox(self)
+        self.population_input.setMinimum(1)
+        self.population_input.setMaximum(100)
+        self.population_input.setSingleStep(1)
+        self.population_input.setValue(self.saved_settings['population_size'])
+        
+        population_layout.addWidget(population_label)
+        population_layout.addWidget(self.population_input)
+        self.settings_layout.addLayout(population_layout)
+        
+        generations_layout = QtWidgets.QHBoxLayout()
+        generations_label = QtWidgets.QLabel("Generations:")
+        self.generations_input = QtWidgets.QSpinBox(self)
+        self.generations_input.setMinimum(1)
+        self.generations_input.setMaximum(100)
+        self.generations_input.setSingleStep(1)
+        self.generations_input.setValue(self.saved_settings['generations'])  # Default or loaded generations value
+        
+        generations_layout.addWidget(generations_label)
+        generations_layout.addWidget(self.generations_input)
+        self.settings_layout.addLayout(generations_layout)
+
+        # Add to widgets dictionary for later removal
+        self.widgets_settings['mutation_rate_label'] = mutation_rate_label
+        self.widgets_settings['mutation_rate'] = self.mutation_rate_input
+        self.widgets_settings['population_label'] = population_label
+        self.widgets_settings['population_size'] = self.population_input
+        self.widgets_settings['generations_label'] = generations_label
+        self.widgets_settings['generations'] = self.generations_input
+
+    def update_settings(self):
+        # Remove any existing dynamic widgets
+        for widget in self.widgets_settings.values():
+            widget.deleteLater()
+        self.widgets_settings.clear()
+
+        # Add the relevant settings widgets based on selected method
+        selected_method = self.method_select.currentText()
+        if selected_method == "Backpropagation":
+            self.add_backpropagation_settings()
+        elif selected_method == "Genetic":
+            self.add_genetic_algorithm_settings()
+        
+        # Refresh the layout
+        self.layout.update()
 
     def save_configuration(self):
-        learning_rate = self.learning_rate.value()
-        epochs = self.epochs.value()
-        method = self.method.currentText()
+        m = self.method_select.currentText()
+        lr = self.learning_rate_input.value()
+        if m == "Backpropagation":
+            e = self.epochs_input.value()
+        else:
+            e = self.saved_settings['epochs']
+        
+        if m == "Genetic":
+            mr = self.mutation_rate_input.value()
+            ps = self.population_input.value()
+            g = self.generations_input.value()
+        else:
+            mr = self.saved_settings['mutation_rate']
+            ps = self.saved_settings['population_size']
+            g = self.saved_settings['generations']
+
         with open('neuron_training_config.txt', 'w') as file:
-            
-            file.write(f"learning_rate: {learning_rate}, epochs: {epochs}, method: {method}")
+            file.write(f"learning_rate: {lr}, epochs: {e}, method: {m}, mutation_rate: {mr}, population_size: {ps}, generations: {g}")
+
+        print("Configuration saved!")
 
        
         

@@ -28,7 +28,7 @@ toolbar.add_button("Quit")
 highest_score = 0
 death_count = 0
 
-learning_rate, epochs, train_method = loading.load_training_settings('neuron_training_config.txt')
+training_settings = loading.load_training_settings('neuron_training_config.txt')
 
 def neuron_training(learning_rate, epochs, seed):
     file_path = 'train_data.txt'
@@ -76,7 +76,7 @@ def detect_action(dino):
         print("ERRROR") 
 
 
-gen1 = neuron_training(learning_rate, epochs, 99)
+gen1 = neuron_training(training_settings['learning_rate'], training_settings['epochs'], 99)
 
 def initialize_population(population_size, nn_architecture):
     population = []
@@ -120,26 +120,23 @@ def create_new_generation(survivors, population_size, num_elites=1):
     
     return new_population
 
-
-population_size = 25
-num_survivors = 10
-generations = 10
     
-NN_ARCHITECTURE = loading.load_architecture_from_file('layers_config.txt')
-NN_ARCHITECTURE = loading.format_nn_architecture(NN_ARCHITECTURE)
+# NN_ARCHITECTURE = loading.load_architecture_from_file('layers_config.txt')
+# NN_ARCHITECTURE = loading.format_nn_architecture(NN_ARCHITECTURE)
 
-# Inicjalizujemy populację oraz stan gry dla każdego agenta
-population = initialize_population(population_size, NN_ARCHITECTURE)
-players = [game.Dinosaur() for _ in range(population_size)]
-scores = [0] * population_size
-alive_agents = [True] * population_size  # Flaga, czy dany agent jest aktywny
+# # Inicjalizujemy populację oraz stan gry dla każdego agenta
+# population = initialize_population(population_size, NN_ARCHITECTURE)
+# players = [game.Dinosaur() for _ in range(population_size)]
+# scores = [0] * population_size
+# alive_agents = [True] * population_size  # Flaga, czy dany agent jest aktywny
 
 def genetic_main():
     global game_speed, x_pos_bg, y_pos_bg,highest_score, points, death_count, num_survivors, generations, players, scores, population, population_size, alive_agents
     #was in global: obstacles, obstacle_distance, obstacle_width, obstacle_height,
-    game_speed, jump_height, spawn_bats, spawn_high, spawn_short = loading.load_game_settings("game_settings.txt")
+    base_game_speed, jump_height, spawn_bats, spawn_high, spawn_short = loading.load_game_settings("game_settings.txt")
     run = True
     clock = pygame.time.Clock()  
+    game_speed = base_game_speed
     
     population_size = 50
     num_survivors = 10
@@ -172,8 +169,7 @@ def genetic_main():
     obstacle_height = 0
     is_flying = -1
     
-    def score(highest_score, death_count):
-        global points, game_speed
+    def score(highest_score, generation, alive, points, game_speed):
         points += 1
         if points % 100 == 0:
             game_speed +=1            
@@ -187,10 +183,17 @@ def genetic_main():
         textRect.center = (1000,60)
         screen.blit(text1, textRect)
         
-        text2 = font.render("Try: " + str(death_count+1), True, (0,0,0))
+        text2 = font.render("Gen: " + str(generation), True, (0,0,0))
         textRect = text2.get_rect()
         textRect.center = (1000,80)
         screen.blit(text2, textRect)
+        
+        text3 = font.render("Alive: " + str(alive), True, (0,0,0))
+        textRect = text2.get_rect()
+        textRect.center = (1000, 100)
+        screen.blit(text3, textRect)
+        
+        return game_speed
 
     def backgroundDraw():
         global x_pos_bg, y_pos_bg
@@ -212,6 +215,7 @@ def genetic_main():
         alive_agents = [True] * population_size
         points = 0
         obstacles = []
+        game_speed = base_game_speed
         print(f"Pokolenie {generation + 1} rozpoczęte...")
         while any(alive_agents):
             for event in pygame.event.get():
@@ -233,7 +237,12 @@ def genetic_main():
                 elif random.randint(0,2) == 2 and spawn_bats == True:
                     obstacles.append(game.Bird(game.bird, screenW))
                     is_flying = 1
-        
+
+            alives = 0
+            for alive in alive_agents:
+                if alive == True:
+                    alives+=1
+                
             for i, agent in enumerate(population):
                 if alive_agents[i]:
                     inputs = np.array([[obstacle_distance, obstacle_height, obstacle_width, game_speed, is_flying]])
@@ -246,24 +255,9 @@ def genetic_main():
             
                     for obstacle in obstacles:
                     
-                        if players[i].dino_rect.colliderect(obstacle.rect):  # Jeśli kolizja, agent ginie
+                        if players[i].dino_rect.colliderect(obstacle.rect):
                         
                             alive_agents[i] = False
-            
-            # if not np.any(alive_agents):
-            #     fitness_scores = scores  # Wyniki gry traktujemy jako fitness
-            #     survivors = select(population, fitness_scores, num_survivors)
-            #     population = create_new_generation(survivors, population_size)
-
-            #     best_score = max(fitness_scores)
-            #     print(f"Pokolenie {1}, Najlepszy wynik: {best_score}")
-            #     players = [game.Dinosaur() for _ in range(population_size)]
-            #     scores = [0] * population_size
-            #     alive_agents = [True] * population_size
-            #     genetic_main()
-            
-            
-            
 
             for obstacle in obstacles:
                 obstacle.draw(screen)
@@ -281,11 +275,11 @@ def genetic_main():
             backgroundDraw()
             cloud.draw(screen)
             cloud.update(screenW, game_speed)
-            score(highest_score, death_count)        
+            game_speed = score(highest_score, generation, alives, points, game_speed)        
             clock.tick(30)
             pygame.display.update()
             
-        fitness_scores = scores  # Wyniki gry traktujemy jako fitness
+        fitness_scores = scores 
         survivors = select(population, fitness_scores, num_survivors)
         population = create_new_generation(survivors, population_size, num_elites)
 
@@ -445,7 +439,7 @@ def menu(death_count, toolbar):
             if toolbar.handle_event(event) == True:
                 gen1 = neuron_training()
             if event.type == pygame.KEYDOWN:
-                if train_method == 'Backpropagation':
+                if training_settings['method'] == 'Backpropagation':
                     backpropagation_main()
                 else:
                     genetic_main()

@@ -41,11 +41,17 @@ def load_training_settings(filename):
                 
         return format_training_settings(settings)
 
-def format_training_settings(settings):
-    learning_rate = float(settings["learning_rate"])
-    epochs = int(float(settings["epochs"]))
-    method = settings["method"]
-    return learning_rate, epochs, method
+def format_training_settings(settings):    
+    settings = {
+        'method' : settings['method'],
+        'learning_rate' : float(settings['learning_rate']),
+        'epochs' : int(float(settings['epochs'])),
+        'mutation_rate' : float(settings['mutation_rate']),
+        'generations' : int(float(settings['generations'])),
+        'population_size' : int(float(settings['population_size']))
+        }
+
+    return settings
 
 def load_game_settings(filename):
     with open(filename, 'r') as file:

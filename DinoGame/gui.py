@@ -86,6 +86,8 @@ class Toolbar:
                         self.options_window.show()
                     if button["text"] == "Reset gen":
                         return True
+                    if button["text"] == "Menu":
+                        return False
                     if button["text"] == "Quit":
                         quit()
 
@@ -472,10 +474,6 @@ class TrainingConfigWindow(QtWidgets.QWidget):
 
         print("Configuration saved!")
 
-       
-        
-        
-
 class OptionsWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -591,19 +589,6 @@ class OptionsWindow(QtWidgets.QWidget):
             file.write(f"spawn_high: {spawn_high_obs}, ")
             file.write(f"spawn_short: {spawn_short_obs}")
         
-    
-# def load_settings_from_file(filename):
-#     settings = {}
-#     try:
-#         with open(filename, 'r') as file:
-#             for line in file:
-#                 key, value = line.strip().split(': ')
-#                 settings[key] = value
-#         print(f"Settings loaded from {filename}")
-#     except FileNotFoundError:
-#         print(f"No settings file found: {filename}")
-    
-#     return settings
     
 def quit():
     pygame.quit()

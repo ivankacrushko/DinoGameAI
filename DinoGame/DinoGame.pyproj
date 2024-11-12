@@ -29,6 +29,9 @@
     <Compile Include="ga.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="bp.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\" />

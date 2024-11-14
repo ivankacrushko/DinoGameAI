@@ -1,6 +1,3 @@
-
-
-
 def load_architecture_from_file(filename):
     architecture = []
 

@@ -15,37 +15,9 @@ app = QtWidgets.QApplication(sys.argv)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
+DARK_GRAY = (150, 150, 150)
 
 font = pygame.font.SysFont(None, 24)
-
-class LayerWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        layout = QtWidgets.QHBoxLayout()
-
-        # Input neurons
-        self.input_neurons = QtWidgets.QSpinBox()
-        self.input_neurons.setMinimum(1)
-        self.input_neurons.setMaximum(100)
-        self.input_neurons.setValue(5)  # Domyślna wartość
-        layout.addWidget(QtWidgets.QLabel("Input neurons"))
-        layout.addWidget(self.input_neurons)
-
-        # Output neurons
-        self.output_neurons = QtWidgets.QSpinBox()
-        self.output_neurons.setMinimum(1)
-        self.output_neurons.setMaximum(100)
-        self.output_neurons.setValue(4)  # Domyślna wartość
-        layout.addWidget(QtWidgets.QLabel("Output neurons"))
-        layout.addWidget(self.output_neurons)
-
-        # Activation function
-        self.activation_function = QtWidgets.QComboBox()
-        self.activation_function.addItems(["sigmoid", "relu", "softmax", "tanh"])
-        layout.addWidget(QtWidgets.QLabel("Activation"))
-        layout.addWidget(self.activation_function)
-
-        self.setLayout(layout)
 
 class Toolbar:
     def __init__(self, screen, width, height=50):
@@ -62,15 +34,16 @@ class Toolbar:
             pos = (last_button["pos"][0] + self.button_size[0] + self.button_margin, 5)
         else:
             pos = (10, 5)
-        self.buttons.append({"text": text, "pos": pos})
+        self.buttons.append({"text": text, "pos": pos, "pressed": False})
 
     def draw(self):
         
         for button in self.buttons:
-            self.draw_button(button["text"], button["pos"])
+            self.draw_button(button["text"], button["pos"], button["pressed"])
 
-    def draw_button(self, text, pos):
-        pygame.draw.rect(self.screen, GRAY, (*pos, *self.button_size))
+    def draw_button(self, text, pos, pressed):
+        color = DARK_GRAY if pressed else GRAY
+        pygame.draw.rect(self.screen, color, (*pos, *self.button_size))
         text_surface = font.render(text, True, BLACK)
         text_rect = text_surface.get_rect(center=(pos[0] + self.button_size[0] // 2, pos[1] + self.button_size[1] // 2))
         self.screen.blit(text_surface, text_rect)
@@ -81,44 +54,79 @@ class Toolbar:
             for button in self.buttons:
                 button_rect = pygame.Rect(button["pos"], self.button_size)
                 if button_rect.collidepoint(mouse_pos):
+                    button["pressed"] = True
                     if button["text"] == "Options":
                         self.options_window = OptionsWindow()
                         self.options_window.show()
                     if button["text"] == "Reset gen":
-                        return True
-                    if button["text"] == "Menu":
-                        return False
+                        return "Reset"
                     if button["text"] == "Quit":
-                        quit()
+                        return "Quit"
+        elif event.type == pygame.MOUSEBUTTONUP:
+            # Reset the "pressed" state for all buttons after releasing
+            for button in self.buttons:
+                button["pressed"] = False
+                
+# class LayerWidget(QtWidgets.QWidget):
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         layout = QtWidgets.QHBoxLayout()
 
-class LayerWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        layout = QtWidgets.QHBoxLayout()
+#         # Input neurons
+#         self.input_neurons = QtWidgets.QSpinBox()
+#         self.input_neurons.setMinimum(1)
+#         self.input_neurons.setMaximum(100)
+#         self.input_neurons.setValue(5)  # Domyślna wartość
+#         layout.addWidget(QtWidgets.QLabel("Input neurons"))
+#         layout.addWidget(self.input_neurons)
 
-        # Input neurons
-        self.input_neurons = QtWidgets.QSpinBox()
-        self.input_neurons.setMinimum(1)
-        self.input_neurons.setMaximum(100)
-        self.input_neurons.setValue(5)  # Domyślna wartość
-        layout.addWidget(QtWidgets.QLabel("Input neurons"))
-        layout.addWidget(self.input_neurons)
+#         # Output neurons
+#         self.output_neurons = QtWidgets.QSpinBox()
+#         self.output_neurons.setMinimum(1)
+#         self.output_neurons.setMaximum(100)
+#         self.output_neurons.setValue(4)  # Domyślna wartość
+#         layout.addWidget(QtWidgets.QLabel("Output neurons"))
+#         layout.addWidget(self.output_neurons)
 
-        # Output neurons
-        self.output_neurons = QtWidgets.QSpinBox()
-        self.output_neurons.setMinimum(1)
-        self.output_neurons.setMaximum(100)
-        self.output_neurons.setValue(4)  # Domyślna wartość
-        layout.addWidget(QtWidgets.QLabel("Output neurons"))
-        layout.addWidget(self.output_neurons)
+#         # Activation function
+#         self.activation_function = QtWidgets.QComboBox()
+#         self.activation_function.addItems(["sigmoid", "relu", "softmax", "tanh"])
+#         layout.addWidget(QtWidgets.QLabel("Activation"))
+#         layout.addWidget(self.activation_function)
 
-        # Activation function
-        self.activation_function = QtWidgets.QComboBox()
-        self.activation_function.addItems(["sigmoid", "relu", "softmax", "tanh"])
-        layout.addWidget(QtWidgets.QLabel("Activation"))
-        layout.addWidget(self.activation_function)
+#         self.setLayout(layout)
 
-        self.setLayout(layout)
+
+
+# class LayerWidget(QtWidgets.QWidget):
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         layout = QtWidgets.QHBoxLayout()
+
+#         # Input neurons
+#         self.input_neurons = QtWidgets.QSpinBox()
+#         self.input_neurons.setMinimum(1)
+#         self.input_neurons.setMaximum(100)
+#         self.input_neurons.setValue(5)  # Domyślna wartość
+#         layout.addWidget(QtWidgets.QLabel("Input neurons"))
+#         layout.addWidget(self.input_neurons)
+#         print("GOWNO12321432")
+
+#         # Output neurons
+#         self.output_neurons = QtWidgets.QSpinBox()
+#         self.output_neurons.setMinimum(1)
+#         self.output_neurons.setMaximum(100)
+#         self.output_neurons.setValue(4)  # Domyślna wartość
+#         layout.addWidget(QtWidgets.QLabel("Output neurons"))
+#         layout.addWidget(self.output_neurons)
+
+#         # Activation function
+#         self.activation_function = QtWidgets.QComboBox()
+#         self.activation_function.addItems(["sigmoid", "relu", "softmax", "tanh"])
+#         layout.addWidget(QtWidgets.QLabel("Activation"))
+#         layout.addWidget(self.activation_function)
+
+#         self.setLayout(layout)
 
 
 class NeuralNetworkConfigWindow(QtWidgets.QWidget):
@@ -129,24 +137,19 @@ class NeuralNetworkConfigWindow(QtWidgets.QWidget):
 
         self.layout = QtWidgets.QVBoxLayout()
 
-        # Warstwa wejściowa
-        self.input_layer = InputLayerWidget()  # Warstwa wejściowa
+        self.input_layer = InputLayerWidget()  
         self.layout.addWidget(self.input_layer)
 
-        # Kontener na warstwy środkowe
         self.layers_container = QtWidgets.QVBoxLayout()
         self.layout.addLayout(self.layers_container)
 
-        # Warstwa wyjściowa
-        self.output_layer = OutputLayerWidget()  # Warstwa wyjściowa
+        self.output_layer = OutputLayerWidget()  
         self.layout.addWidget(self.output_layer)
 
-        # Przycisk dodawania nowej warstwy
         self.add_layer_button = QtWidgets.QPushButton("Add Layer")
         self.add_layer_button.clicked.connect(self.add_layer)
         self.layout.addWidget(self.add_layer_button)
 
-        # Przycisk zapisu
         self.save_button = QtWidgets.QPushButton("Save Configuration")
         self.save_button.clicked.connect(self.save_configuration)
         self.layout.addWidget(self.save_button)
@@ -163,10 +166,9 @@ class NeuralNetworkConfigWindow(QtWidgets.QWidget):
     def save_configuration(self):
         layers = []
 
-        # Dodaj warstwę wejściową
         layers.append({
-            "input_dim": 5,  # Stała wartość
-            "output_dim": self.input_layer.output_neurons.value(),  # 3 stałe
+            "input_dim": 5,  
+            "output_dim": self.input_layer.output_neurons.value(),  
             "activation": self.input_layer.activation_function.currentText()
         })
 
@@ -179,20 +181,19 @@ class NeuralNetworkConfigWindow(QtWidgets.QWidget):
             }
             layers.append(layer)
 
-        # Dodaj warstwę wyjściową
         layers.append({
-            "input_dim": self.output_layer.input_neurons.value(),  # Ostatnia warstwa
-            "output_dim": 3,  # Stała wartość
+            "input_dim": self.output_layer.input_neurons.value(),
+            "output_dim": 3,
             "activation": self.output_layer.activation_function.currentText()
         })
 
-        # Zapisz do pliku w formacie wymaganym przez NN_ARCHITECTURE
         with open('layers_config.txt', 'w') as file:
             for layer in layers:
                 file.write(f"input_dim: {layer['input_dim']}, output_dim: {layer['output_dim']}, activation: {layer['activation']}\n")
                 
+        self.close()
+                
     def load_configuration(self):
-    # Clear existing widgets in the container
         while self.layers_container.count() > 0:
             item = self.layers_container.takeAt(0)
             widget = item.widget()
@@ -203,51 +204,41 @@ class NeuralNetworkConfigWindow(QtWidgets.QWidget):
             with open('layers_config.txt', 'r') as file:
                 lines = file.readlines()
                 for line in lines:
-                    # Parse each line to extract layer properties
                     params = line.strip().split(',')
                     layer_params = {}
                     for param in params:
                         key, value = param.split(': ')
                         layer_params[key.strip()] = value.strip()
 
-                    # Create a new LayerWidget and set its properties
                     layer_widget = LayerWidget()
                     layer_widget.input_neurons.setValue(int(layer_params['input_dim']))
                     layer_widget.output_neurons.setValue(int(layer_params['output_dim']))
                     layer_widget.activation_function.setCurrentText(layer_params['activation'])
                 
-                    # Add the configured layer to the container
                     self.layers_container.addWidget(layer_widget)
                 
         except FileNotFoundError:
             print("Configuration file not found.")
 
-
-
-        
- 
 class InputLayerWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
         layout = QtWidgets.QHBoxLayout()
 
-        # Input Neurons (5 neurons, non-editable)
         self.input_neurons = QtWidgets.QSpinBox(self)
-        self.input_neurons.setValue(5)  # Fixed value
-        self.input_neurons.setReadOnly(True)  # Make it read-only
+        self.input_neurons.setValue(5)  
+        self.input_neurons.setReadOnly(True)  
         layout.addWidget(QtWidgets.QLabel("Input Neurons"))
         layout.addWidget(self.input_neurons)
 
-        # Output Neurons (3 neurons)
         self.output_neurons = QtWidgets.QSpinBox(self)
-        self.output_neurons.setMinimum(1)  # Allow to change
+        self.output_neurons.setMinimum(1)  
         self.output_neurons.setMaximum(1000)
-        self.output_neurons.setValue(3)  # Default value
+        self.output_neurons.setValue(3)  
         layout.addWidget(QtWidgets.QLabel("Output Neurons"))
         layout.addWidget(self.output_neurons)
 
-        # Activation Function
         self.activation_function = QtWidgets.QComboBox(self)
         self.activation_function.addItems(["relu", "sigmoid", "softmax", "tanh"])
         layout.addWidget(QtWidgets.QLabel("Activation Function"))
@@ -261,7 +252,6 @@ class OutputLayerWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QHBoxLayout()
 
-        # Input Neurons (5 neurons)
         self.input_neurons = QtWidgets.QSpinBox(self)
         self.input_neurons.setMinimum(1)
         self.input_neurons.setMaximum(1000)
@@ -269,14 +259,12 @@ class OutputLayerWidget(QtWidgets.QWidget):
         layout.addWidget(QtWidgets.QLabel("Input Neurons"))
         layout.addWidget(self.input_neurons)
 
-        # Output Neurons (3 neurons, non-editable)
         self.output_neurons = QtWidgets.QSpinBox(self)
         self.output_neurons.setValue(3)  # Fixed value
         self.output_neurons.setReadOnly(True)  # Make it read-only
         layout.addWidget(QtWidgets.QLabel("Output Neurons"))
         layout.addWidget(self.output_neurons)
 
-        # Activation Function
         self.activation_function = QtWidgets.QComboBox(self)
         self.activation_function.addItems(["relu", "sigmoid", "softmax", "tanh"])
         layout.addWidget(QtWidgets.QLabel("Activation Function"))
@@ -290,21 +278,18 @@ class LayerWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QHBoxLayout()
 
-        # Input Neurons
         self.input_neurons = QtWidgets.QSpinBox(self)
         self.input_neurons.setMinimum(1)
         self.input_neurons.setMaximum(1000)
         layout.addWidget(QtWidgets.QLabel("Input Neurons"))
         layout.addWidget(self.input_neurons)
 
-        # Output Neurons
         self.output_neurons = QtWidgets.QSpinBox(self)
         self.output_neurons.setMinimum(1)
         self.output_neurons.setMaximum(1000)
         layout.addWidget(QtWidgets.QLabel("Output Neurons"))
         layout.addWidget(self.output_neurons)
 
-        # Activation Function
         self.activation_function = QtWidgets.QComboBox(self)
         self.activation_function.addItems(["relu", "sigmoid", "softmax", "tanh"])
         layout.addWidget(QtWidgets.QLabel("Activation Function"))
@@ -471,8 +456,9 @@ class TrainingConfigWindow(QtWidgets.QWidget):
 
         with open('neuron_training_config.txt', 'w') as file:
             file.write(f"learning_rate: {lr}, epochs: {e}, method: {m}, mutation_rate: {mr}, population_size: {ps}, generations: {g}")
+            
+        self.close()
 
-        print("Configuration saved!")
 
 class OptionsWindow(QtWidgets.QWidget):
     def __init__(self):
@@ -529,7 +515,6 @@ class OptionsWindow(QtWidgets.QWidget):
         high_obs_checkbox_layout.addStretch(1)
         layout.addLayout(high_obs_checkbox_layout)
 
-        # Short obstacles check
         short_obs_checkbox_layout = QtWidgets.QHBoxLayout()        
         short_obs_checkbox_layout.setSpacing(5)
         self.obstacle_short = QtWidgets.QCheckBox(self)
@@ -542,22 +527,18 @@ class OptionsWindow(QtWidgets.QWidget):
         short_obs_checkbox_layout.addStretch(1)
         layout.addLayout(short_obs_checkbox_layout)
 
-        # NN Settings Button
         self.nn_settings_button = QtWidgets.QPushButton("Neural network settings", self)
         self.nn_settings_button.clicked.connect(self.open_nn_settings_window)
         layout.addWidget(self.nn_settings_button)
         
-        #Train Settings Button
         self.train_settings_button = QtWidgets.QPushButton("Neuron training settings", self)
         self.train_settings_button.clicked.connect(self.open_train_settings_window) 
         layout.addWidget(self.train_settings_button)
 
-        # Save Button
         save_button = QtWidgets.QPushButton("Apply", self)
         save_button.clicked.connect(self.save_settings_to_file)
         layout.addWidget(save_button)
 
-        # Set layout
         self.setLayout(layout)
         
         self.nn_settings_window = None
@@ -574,20 +555,20 @@ class OptionsWindow(QtWidgets.QWidget):
         self.train_settings_window.show()
 
     def save_settings_to_file(self):
-        # Odczytanie wartości z kontrolek
         game_speed = self.game_speed_field.value()
         jump_height_value = self.jump_height.value()
         spawn_bats = self.obstacle_bat.isChecked()
         spawn_high_obs = self.obstacle_high.isChecked()
         spawn_short_obs = self.obstacle_short.isChecked()
 
-        # Zapisz do pliku
         with open('game_settings.txt', 'w') as file:
             file.write(f"game_speed: {game_speed}, ")
             file.write(f"jump_height: {jump_height_value}, ")
             file.write(f"spawn_bats: {spawn_bats}, ")
             file.write(f"spawn_high: {spawn_high_obs}, ")
             file.write(f"spawn_short: {spawn_short_obs}")
+            
+        self.close()
         
     
 def quit():

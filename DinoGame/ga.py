@@ -34,11 +34,9 @@ def mutate(agent, mutation_rate=0.1):
 def create_new_generation(survivors, population_size, num_elites=1):
     new_population = []
     
-    # Przeniesienie elity
     elites = survivors[:num_elites]
     new_population.extend(elites)
     
-    # Tworzenie reszty populacji
     while len(new_population) < population_size:
         parent1, parent2 = np.random.choice(survivors, 2)
         child = crossover(parent1, parent2)
@@ -147,8 +145,8 @@ def genetic_main(screen, screenW, toolbar):
         while any(alive_agents):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    run = False
-                if toolbar.handle_event(event) ==False:
+                    return
+                if toolbar.handle_event(event) == "Quit":
                     return
 
             screen.fill((255,255,255))

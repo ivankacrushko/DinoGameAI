@@ -1,13 +1,7 @@
 ﻿
 import pygame
-import random
-import numpy as np
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
-from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QImage, QPixmap
-
-import ann, game, gui, loading, ga, bp
+import loading, ga, bp
 from gui import Toolbar
 
 pygame.init()
@@ -15,13 +9,11 @@ pygame.init()
 screenH = 600
 screenW = 1100
 screen = pygame.display.set_mode((screenW, screenH))
+pygame.display.set_caption('Dino Game')
 
 toolbar = Toolbar(screen, screenW)
-toolbar.add_button("New")
-toolbar.add_button("Open")
 toolbar.add_button("Options")
 toolbar.add_button("Reset gen")
-toolbar.add_button("Menu")
 toolbar.add_button("Quit")
 
 
@@ -72,13 +64,17 @@ def menu(death_count, toolbar):
         training_settings = loading.load_training_settings('neuron_training_config.txt')
         for event in pygame.event.get():
             if event.type ==pygame.QUIT:
-                run = False
                 pygame.quit()
-            if toolbar.handle_event(event) == True:
-                gen1 = bp.neuron_training(99)
+                run = False
+            if toolbar.handle_event(event) == "Reset":
+                gen1 = bp.neuron_training()
+            if toolbar.handle_event(event) == "Quit":
+                pygame.quit()
+                run = False
             if event.type == pygame.KEYDOWN:
                 if training_settings['method'] == 'Backpropagation':
-                    gen1 = bp.neuron_training(99)
+                    
+                    gen1 = bp.neuron_training()
                     bp.backpropagation_main(screen, screenW, toolbar, gen1)
                 else:
                     ga.genetic_main(screen, screenW, toolbar)

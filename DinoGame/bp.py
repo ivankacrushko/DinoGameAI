@@ -15,7 +15,7 @@ def filter_actions(model_output):
         
     return filtered_action
 
-def neuron_training(seed):
+def neuron_training():
     training_settings = loading.load_training_settings('neuron_training_config.txt')
     learning_rate = training_settings['learning_rate']
     epochs = training_settings['epochs']
@@ -37,7 +37,7 @@ def neuron_training(seed):
     norm_train_X = np.array(norm_train_X)
     
     gen = ann.Model()
-    gen.train(np.transpose(train_X), np.transpose(train_Y), NN_ARCHITECTURE, epochs, learning_rate, seed)
+    gen.train(np.transpose(train_X), np.transpose(train_Y), NN_ARCHITECTURE, epochs, learning_rate, 99)
     #(1000\0.0009)
     
     return gen
@@ -109,22 +109,18 @@ def backpropagation_main(screen, screenW, toolbar, gen1):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            if toolbar.handle_event(event) ==False:
+            if toolbar.handle_event(event) == "Quit":
                     return
 
         screen.fill((255,255,255))
         userInput = pygame.key.get_pressed()
         toolbar.draw()
 
-        
-        
         inputs = np.array([[obstacle_distance, obstacle_height, obstacle_width, game_speed, is_flying]])    
 
         player.draw(screen)
         gen1_forward, rr = gen1.full_forward_propagation(np.reshape(inputs, (5,1)), gen1.params_values, ann.NN_ARCHITECTURE)
         player.update(userInput, filter_actions(gen1_forward))
-
-
 
         if len(obstacles) == 0:
             if random.randint(0,2) == 0 and spawn_short == True:

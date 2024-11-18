@@ -1,7 +1,9 @@
 ﻿
 import pygame
 
-import loading, ga, bp
+import loading
+import genetic_algorithm as ga
+import backpropagation as bp
 from gui import Toolbar
 
 pygame.init()

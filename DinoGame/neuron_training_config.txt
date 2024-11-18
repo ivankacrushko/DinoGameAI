@@ -1,1 +1,1 @@
-learning_rate: 0.0035, epochs: 1000, method: Backpropagation, mutation_rate: 0.1, population_size: 50, generations: 100
+learning_rate: 0.0035, epochs: 1000, method: Genetic, mutation_rate: 0.1, population_size: 50, generations: 100

@@ -31,7 +31,7 @@ def mutate(agent, mutation_rate=0.1):
         agent.params_values[key] += mutation_mask * np.random.randn(*agent.params_values[key].shape)
     return agent
 
-def create_new_generation(survivors, population_size, num_elites=1):
+def create_new_generation(survivors, population_size, mutation_rate, num_elites=1):
     new_population = []
     
     elites = survivors[:num_elites]
@@ -40,7 +40,7 @@ def create_new_generation(survivors, population_size, num_elites=1):
     while len(new_population) < population_size:
         parent1, parent2 = np.random.choice(survivors, 2)
         child = crossover(parent1, parent2)
-        child = mutate(child)
+        child = mutate(child, mutation_rate)
         new_population.append(child)
     
     return new_population
@@ -62,10 +62,13 @@ def genetic_main(screen, screenW, toolbar):
     clock = pygame.time.Clock()  
     game_speed = base_game_speed
     
-    population_size = 50
+    training_settings = loading.load_training_settings('neuron_training_config.txt')
+    
+    population_size = training_settings['population_size']
     num_survivors = 10
     num_elites = 1
-    generations = 100
+    generations = training_settings['generations']
+    mutation_rate = training_settings['mutation_rate']
 
     # Inicjalizacja populacji oraz stanu gry
     NN_ARCHITECTURE = loading.load_architecture_from_file('layers_config.txt')
@@ -207,7 +210,7 @@ def genetic_main(screen, screenW, toolbar):
             
         fitness_scores = scores 
         survivors = select(population, fitness_scores, num_survivors)
-        population = create_new_generation(survivors, population_size, num_elites)
+        population = create_new_generation(survivors, population_size, mutation_rate, num_elites)
 
         best_score = max(fitness_scores)
         print(f"Pokolenie {generation + 1} zakonczone, Najlepszy wynik: {best_score}")

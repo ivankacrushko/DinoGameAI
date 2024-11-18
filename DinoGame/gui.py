@@ -67,67 +67,6 @@ class Toolbar:
             for button in self.buttons:
                 button["pressed"] = False
                 
-# class LayerWidget(QtWidgets.QWidget):
-#     def __init__(self, parent=None):
-#         super().__init__(parent)
-#         layout = QtWidgets.QHBoxLayout()
-
-#         # Input neurons
-#         self.input_neurons = QtWidgets.QSpinBox()
-#         self.input_neurons.setMinimum(1)
-#         self.input_neurons.setMaximum(100)
-#         self.input_neurons.setValue(5)  # Domyślna wartość
-#         layout.addWidget(QtWidgets.QLabel("Input neurons"))
-#         layout.addWidget(self.input_neurons)
-
-#         # Output neurons
-#         self.output_neurons = QtWidgets.QSpinBox()
-#         self.output_neurons.setMinimum(1)
-#         self.output_neurons.setMaximum(100)
-#         self.output_neurons.setValue(4)  # Domyślna wartość
-#         layout.addWidget(QtWidgets.QLabel("Output neurons"))
-#         layout.addWidget(self.output_neurons)
-
-#         # Activation function
-#         self.activation_function = QtWidgets.QComboBox()
-#         self.activation_function.addItems(["sigmoid", "relu", "softmax", "tanh"])
-#         layout.addWidget(QtWidgets.QLabel("Activation"))
-#         layout.addWidget(self.activation_function)
-
-#         self.setLayout(layout)
-
-
-
-# class LayerWidget(QtWidgets.QWidget):
-#     def __init__(self, parent=None):
-#         super().__init__(parent)
-#         layout = QtWidgets.QHBoxLayout()
-
-#         # Input neurons
-#         self.input_neurons = QtWidgets.QSpinBox()
-#         self.input_neurons.setMinimum(1)
-#         self.input_neurons.setMaximum(100)
-#         self.input_neurons.setValue(5)  # Domyślna wartość
-#         layout.addWidget(QtWidgets.QLabel("Input neurons"))
-#         layout.addWidget(self.input_neurons)
-#         print("GOWNO12321432")
-
-#         # Output neurons
-#         self.output_neurons = QtWidgets.QSpinBox()
-#         self.output_neurons.setMinimum(1)
-#         self.output_neurons.setMaximum(100)
-#         self.output_neurons.setValue(4)  # Domyślna wartość
-#         layout.addWidget(QtWidgets.QLabel("Output neurons"))
-#         layout.addWidget(self.output_neurons)
-
-#         # Activation function
-#         self.activation_function = QtWidgets.QComboBox()
-#         self.activation_function.addItems(["sigmoid", "relu", "softmax", "tanh"])
-#         layout.addWidget(QtWidgets.QLabel("Activation"))
-#         layout.addWidget(self.activation_function)
-
-#         self.setLayout(layout)
-
 
 class NeuralNetworkConfigWindow(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -347,18 +286,6 @@ class TrainingConfigWindow(QtWidgets.QWidget):
         self.update_settings()
 
     def add_backpropagation_settings(self):
-        # learning_rate_layout = QtWidgets.QHBoxLayout()
-        # learning_rate_label = QtWidgets.QLabel("Learning rate:")
-        # self.learning_rate_input = QtWidgets.QDoubleSpinBox(self)
-        # self.learning_rate_input.setMinimum(0.0001)
-        # self.learning_rate_input.setMaximum(1)
-        # self.learning_rate_input.setSingleStep(0.0001)
-        # self.learning_rate_input.setDecimals(4)
-        # self.learning_rate_input.setValue(self.saved_settings['learning_rate'])
-        
-        # learning_rate_layout.addWidget(learning_rate_label)
-        # learning_rate_layout.addWidget(self.learning_rate_input)
-        # self.settings_layout.addLayout(learning_rate_layout)
         
         epoch_layout = QtWidgets.QHBoxLayout()
         epoch_label = QtWidgets.QLabel("Epochs:")
@@ -407,13 +334,12 @@ class TrainingConfigWindow(QtWidgets.QWidget):
         self.generations_input.setMinimum(1)
         self.generations_input.setMaximum(100)
         self.generations_input.setSingleStep(1)
-        self.generations_input.setValue(self.saved_settings['generations'])  # Default or loaded generations value
+        self.generations_input.setValue(self.saved_settings['generations'])  
         
         generations_layout.addWidget(generations_label)
         generations_layout.addWidget(self.generations_input)
         self.settings_layout.addLayout(generations_layout)
 
-        # Add to widgets dictionary for later removal
         self.widgets_settings['mutation_rate_label'] = mutation_rate_label
         self.widgets_settings['mutation_rate'] = self.mutation_rate_input
         self.widgets_settings['population_label'] = population_label
@@ -422,19 +348,16 @@ class TrainingConfigWindow(QtWidgets.QWidget):
         self.widgets_settings['generations'] = self.generations_input
 
     def update_settings(self):
-        # Remove any existing dynamic widgets
         for widget in self.widgets_settings.values():
             widget.deleteLater()
         self.widgets_settings.clear()
 
-        # Add the relevant settings widgets based on selected method
         selected_method = self.method_select.currentText()
         if selected_method == "Backpropagation":
             self.add_backpropagation_settings()
         elif selected_method == "Genetic":
             self.add_genetic_algorithm_settings()
         
-        # Refresh the layout
         self.layout.update()
 
     def save_configuration(self):

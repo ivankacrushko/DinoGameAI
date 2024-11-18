@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>247e60be-4ddf-4c99-a66c-cf9ec302de5a</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>DinoGame.py</StartupFile>
+    <StartupFile>menu.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,14 +22,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ann.py" />
-    <Compile Include="DinoGame.py" />
+    <Compile Include="menu.py" />
     <Compile Include="game.py" />
     <Compile Include="gui.py" />
     <Compile Include="loading.py" />
-    <Compile Include="ga.py">
+    <Compile Include="genetic_algorithm.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="bp.py">
+    <Compile Include="backpropagation.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
